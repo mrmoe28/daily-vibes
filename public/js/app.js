@@ -1,56 +1,13 @@
 // TaskFlow - Modern Task Manager (Performance Optimized)
 
-// Global fallback navigation handler - Define immediately for onclick handlers
-window.handleNavigation = function(page) {
-    console.log('Global handleNavigation called with page:', page);
-    console.log('window.app exists:', !!window.app);
-    console.log('window.app.handleNavigation exists:', !!(window.app && window.app.handleNavigation));
-    
-    if (window.app && window.app.handleNavigation) {
-        console.log('Calling app.handleNavigation');
-        window.app.handleNavigation(page);
-    } else {
-        console.warn('App not ready, navigation will be handled when ready');
-        // Retry after a short delay
-        setTimeout(() => {
-            console.log('Retrying navigation for page:', page);
-            if (window.app && window.app.handleNavigation) {
-                console.log('App is now ready, calling handleNavigation');
-                window.app.handleNavigation(page);
-            } else {
-                console.error('App still not ready after retry');
-            }
-        }, 100);
-    }
-};
 
-window.filterByCategory = function(category) {
-    console.log('Global filterByCategory called with category:', category);
-    console.log('window.app exists:', !!window.app);
-    console.log('window.app.filterByCategory exists:', !!(window.app && window.app.filterByCategory));
-    
-    if (window.app && window.app.filterByCategory) {
-        console.log('Calling app.filterByCategory');
-        window.app.filterByCategory(category);
-    } else {
-        console.warn('App not ready, category filter will be handled when ready');
-        // Retry after a short delay
-        setTimeout(() => {
-            console.log('Retrying category filter for:', category);
-            if (window.app && window.app.filterByCategory) {
-                console.log('App is now ready, calling filterByCategory');
-                window.app.filterByCategory(category);
-            } else {
-                console.error('App still not ready after retry');
-            }
-        }, 100);
-    }
-};
 
 class TaskFlowApp {
     constructor() {
         this.tasks = JSON.parse(localStorage.getItem('tasks')) || [];
         this.currentTaskId = null;
+        this.currentPage = 'tasks'; // Track current page
+        this.currentCategory = null; // Track current category filter
         this.debounceTimers = new Map();
         this.domCache = new Map();
         this.inputListeners = new Map();
@@ -79,6 +36,7 @@ class TaskFlowApp {
 
     async init() {
         this.cacheDOM();
+        this.setupNavigation(); // New navigation setup
         this.setupEventListeners();
         this.setupAuthEventListeners();
         this.updateAuthUI();
@@ -87,6 +45,9 @@ class TaskFlowApp {
         await this.loadUserTasks();
         
         this.setupDragAndDrop();
+        
+        // Initialize with current page
+        this.navigateToPage(this.currentPage);
     }
 
     // Cache DOM elements to reduce queries
@@ -210,30 +171,6 @@ class TaskFlowApp {
                 this.hideTaskModal();
             }
         }, { passive: true });
-
-        // Navigation - use event delegation for better performance
-        document.addEventListener('click', (e) => {
-            const navItem = e.target.closest('.nav-item[data-page]');
-            if (navItem) {
-                e.preventDefault();
-                this.handleNavigation(navItem.getAttribute('data-page'));
-                return;
-            }
-
-            const categoryItem = e.target.closest('.nav-item[data-category]');
-            if (categoryItem) {
-                e.preventDefault();
-                this.filterByCategory(categoryItem.getAttribute('data-category'));
-                return;
-            }
-
-            // Handle search button in sidebar
-            if (e.target.closest('#searchTasksBtn')) {
-                e.preventDefault();
-                this.handleNavigation('search');
-                return;
-            }
-        }, { passive: false });
 
         // File upload handling
         const fileInput = this.domCache.get('taskFiles');
@@ -1236,146 +1173,38 @@ class TaskFlowApp {
     }, 100);
 
     filterByCategory(category) {
-        // Update active state
-        document.querySelectorAll('.nav-item[data-category]').forEach(item => {
-            item.classList.remove('active');
-        });
+        console.log('Filtering by category:', category);
         
-        // Also clear data-page active states
-        document.querySelectorAll('.nav-item[data-page]').forEach(item => {
-            item.classList.remove('active');
-        });
+        // Update current category
+        this.currentCategory = category;
         
-        const categoryItem = document.querySelector(`[data-category="${category}"]`);
-        if (categoryItem) {
-            categoryItem.classList.add('active');
+        // Update navigation active states
+        this.updateNavigationActiveStates();
+        
+        // Apply filter to current view
+        if (this.currentPage === 'tasks') {
+            this.applyCategoryFilter(category);
         }
-
-        // Update page title
-        const pageTitle = document.querySelector('.page-title');
-        if (pageTitle) {
-            const categoryName = category.charAt(0).toUpperCase() + category.slice(1);
-            pageTitle.textContent = `${categoryName} Tasks`;
-        }
-
-        // Show filtered task board
-        this.hideAllViews();
-        const taskBoard = document.getElementById('taskBoard');
-        const statsGrid = document.querySelector('.stats-grid');
-        if (taskBoard) taskBoard.style.display = 'grid';
-        if (statsGrid) statsGrid.style.display = 'grid';
-
-        // Apply category filter
-        this.currentCategoryFilter = category;
-        this.renderFilteredTasks();
-        this.updateFilteredStats();
     }
 
-    renderFilteredTasks() {
-        if (!this.currentCategoryFilter) {
-            this.renderTasks();
-            return;
-        }
-
-        // Filter tasks by current category
-        const filteredTasks = this.tasks.filter(task => task.category === this.currentCategoryFilter);
+    applyCategoryFilter(category) {
+        // Get all task cards
+        const taskCards = document.querySelectorAll('.task-card');
         
-        // Temporarily replace tasks for rendering
-        const originalTasks = this.tasks;
-        this.tasks = filteredTasks;
-        this.renderTasks();
-        this.tasks = originalTasks;
-    }
-
-    updateFilteredStats() {
-        if (!this.currentCategoryFilter) {
-            this.updateStats();
-            return;
-        }
-
-        const categoryTasks = this.tasks.filter(task => task.category === this.currentCategoryFilter);
-        const total = categoryTasks.length;
-        const todo = categoryTasks.filter(t => t.status === 'todo').length;
-        const progress = categoryTasks.filter(t => t.status === 'progress').length;
-        const completed = categoryTasks.filter(t => t.status === 'completed').length;
-
-        requestAnimationFrame(() => {
-            this.domCache.get('totalTasks').textContent = total;
-            this.domCache.get('todoTasks').textContent = todo;
-            this.domCache.get('progressTasks').textContent = progress;
-            this.domCache.get('completedTasks').textContent = completed;
-        });
-    }
-
-    clearCategoryFilter() {
-        this.currentCategoryFilter = null;
-        
-        // Clear active states from category items
-        document.querySelectorAll('.nav-item[data-category]').forEach(item => {
-            item.classList.remove('active');
-        });
-        
-        // Reset to task board
-        this.handleNavigation('tasks');
-    }
-
-    handleNavigation(page) {
-        console.log('Navigating to:', page); // Debug log
-        
-        // Clear category filter when navigating to different pages
-        this.currentCategoryFilter = null;
-        
-        // Update active state
-        document.querySelectorAll('.nav-item[data-page]').forEach(item => {
-            item.classList.remove('active');
-        });
-        
-        // Clear category active states
-        document.querySelectorAll('.nav-item[data-category]').forEach(item => {
-            item.classList.remove('active');
-        });
-        
-        const targetNavItem = document.querySelector(`[data-page="${page}"]`);
-        if (targetNavItem) {
-            targetNavItem.classList.add('active');
-        }
-        
-        // Update page title
-        const pageTitle = document.querySelector('.page-title');
-        if (pageTitle) {
-            switch (page) {
-                case 'tasks':
-                    pageTitle.textContent = 'Task Board';
-                    break;
-                case 'calendar':
-                    pageTitle.textContent = 'Calendar View';
-                    break;
-                case 'analytics':
-                    pageTitle.textContent = 'Analytics Dashboard';
-                    break;
-                default:
-                    pageTitle.textContent = 'TaskFlow';
+        taskCards.forEach(card => {
+            const taskCategory = card.getAttribute('data-category');
+            if (category === 'all' || taskCategory === category) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
             }
-        }
-
-        // Handle different pages
-        switch (page) {
-            case 'tasks':
-                // Show task board
-                this.showTaskBoard();
-                break;
-            case 'calendar':
-                this.showCalendarView();
-                break;
-            case 'analytics':
-                this.showAnalyticsView();
-                break;
-            case 'search':
-                this.showSearchView();
-                break;
-        }
+        });
+        
+        // Update stats
+        this.updateStats();
     }
-    
+
+    // View management methods
     showTaskBoard() {
         // Hide other views
         this.hideAllViews();
@@ -1396,94 +1225,31 @@ class TaskFlowApp {
         // Hide other views
         this.hideAllViews();
         
-        // Show calendar view with loading state
+        // Show calendar view
         const calendarView = document.getElementById('calendarView');
         if (calendarView) {
             calendarView.style.display = 'block';
-            this.showLoadingState('calendar');
-            
-            // Use setTimeout to allow UI to update before heavy operations
-            setTimeout(() => {
-                try {
-                    this.setupCalendarNavigation();
-                    this.generateCalendar();
-                    this.populateUpcomingTasks();
-                    this.hideLoadingState('calendar');
-                } catch (error) {
-                    console.error('Error loading calendar view:', error);
-                    this.showErrorState('calendar', 'Failed to load calendar view');
-                }
-            }, 100);
+            // Initialize calendar if needed
+            if (!this.calendarInitialized) {
+                this.initializeCalendar();
+                this.calendarInitialized = true;
+            }
         }
-    }
-
-    setupCalendarNavigation() {
-        // Use cached DOM elements and ensure event listeners are properly set up
-        const prevBtn = this.domCache.get('prevMonth');
-        const nextBtn = this.domCache.get('nextMonth');
-        const todayBtn = this.domCache.get('todayBtn');
-
-        if (prevBtn && !this.calendarListenersSetup) {
-            prevBtn.addEventListener('click', () => {
-                if (this.currentCalendarDate) {
-                    const newDate = new Date(this.currentCalendarDate);
-                    newDate.setMonth(newDate.getMonth() - 1);
-                    this.generateCalendar(newDate);
-                }
-            });
-        }
-
-        if (nextBtn && !this.calendarListenersSetup) {
-            nextBtn.addEventListener('click', () => {
-                if (this.currentCalendarDate) {
-                    const newDate = new Date(this.currentCalendarDate);
-                    newDate.setMonth(newDate.getMonth() + 1);
-                    this.generateCalendar(newDate);
-                }
-            });
-        }
-
-        if (todayBtn && !this.calendarListenersSetup) {
-            todayBtn.addEventListener('click', () => {
-                this.generateCalendar(new Date());
-            });
-        }
-        
-        // Mark calendar listeners as set up
-        this.calendarListenersSetup = true;
     }
     
     showAnalyticsView() {
         // Hide other views
         this.hideAllViews();
         
-        // Show analytics view with loading state
+        // Show analytics view
         const analyticsView = document.getElementById('analyticsView');
         if (analyticsView) {
             analyticsView.style.display = 'block';
-            this.showLoadingState('analytics');
-            
-            // Use setTimeout to allow UI to update before heavy operations
-            setTimeout(() => {
-                try {
-                    this.setupAnalyticsEventListeners();
-                    this.generateAnalytics();
-                    this.hideLoadingState('analytics');
-                } catch (error) {
-                    console.error('Error loading analytics view:', error);
-                    this.showErrorState('analytics', 'Failed to load analytics data');
-                }
-            }, 100);
-        }
-    }
-
-    setupAnalyticsEventListeners() {
-        const chartPeriod = document.getElementById('chartPeriod');
-        if (chartPeriod && !chartPeriod.hasAttribute('data-listener-added')) {
-            chartPeriod.addEventListener('change', () => {
-                this.generateCompletionChart();
-            });
-            chartPeriod.setAttribute('data-listener-added', 'true');
+            // Initialize analytics if needed
+            if (!this.analyticsInitialized) {
+                this.initializeAnalytics();
+                this.analyticsInitialized = true;
+            }
         }
     }
     
@@ -1491,553 +1257,62 @@ class TaskFlowApp {
         // Hide other views
         this.hideAllViews();
         
-        // Show search view with loading state
+        // Show search view
         const searchView = document.getElementById('searchView');
         if (searchView) {
             searchView.style.display = 'block';
-            this.showLoadingState('search');
-            
-            // Use setTimeout to allow UI to update
-            setTimeout(() => {
-                try {
-                    this.initializeSearch();
-                    this.hideLoadingState('search');
-                } catch (error) {
-                    console.error('Error loading search view:', error);
-                    this.showErrorState('search', 'Failed to initialize search');
-                }
-            }, 50);
+            // Initialize search if needed
+            if (!this.searchInitialized) {
+                this.initializeSearch();
+                this.searchInitialized = true;
+            }
         }
     }
     
     hideAllViews() {
-        // Hide task board
-        const taskBoard = document.getElementById('taskBoard');
-        const statsGrid = document.querySelector('.stats-grid');
-        const calendarView = document.getElementById('calendarView');
-        const analyticsView = document.getElementById('analyticsView');
-        const searchView = document.getElementById('searchView');
-        
-        if (taskBoard) taskBoard.style.display = 'none';
-        if (statsGrid) statsGrid.style.display = 'none';
-        if (calendarView) calendarView.style.display = 'none';
-        if (analyticsView) analyticsView.style.display = 'none';
-        if (searchView) searchView.style.display = 'none';
-    }
-    
-    generateCalendar(viewDate = null) {
-        const calendarGrid = document.getElementById('calendarGrid');
-        const currentMonthElement = document.getElementById('currentMonth');
-        
-        if (!calendarGrid || !currentMonthElement) return;
-        
-        // Use provided date or current date
-        const baseDate = viewDate || new Date();
-        this.currentCalendarDate = baseDate;
-        const year = baseDate.getFullYear();
-        const month = baseDate.getMonth();
-        
-        // Update month display
-        const monthNames = [
-            'January', 'February', 'March', 'April', 'May', 'June',
-            'July', 'August', 'September', 'October', 'November', 'December'
+        // Hide all main views
+        const views = [
+            'taskBoard',
+            'calendarView', 
+            'analyticsView',
+            'searchView'
         ];
-        currentMonthElement.textContent = `${monthNames[month]} ${year}`;
         
-        // Clear existing calendar
-        calendarGrid.innerHTML = '';
+        views.forEach(viewId => {
+            const view = document.getElementById(viewId);
+            if (view) view.style.display = 'none';
+        });
         
-        // Get first day of month and number of days
-        const firstDay = new Date(year, month, 1);
-        const lastDay = new Date(year, month + 1, 0);
-        const startDate = new Date(firstDay);
-        startDate.setDate(startDate.getDate() - firstDay.getDay());
-        
-        // Generate 6 weeks of calendar
-        for (let week = 0; week < 6; week++) {
-            for (let day = 0; day < 7; day++) {
-                const currentDate = new Date(startDate);
-                currentDate.setDate(startDate.getDate() + (week * 7) + day);
-                
-                const dayElement = document.createElement('div');
-                dayElement.className = 'calendar-day';
-                
-                if (currentDate.getMonth() !== month) {
-                    dayElement.classList.add('other-month');
-                }
-                
-                if (this.isSameDay(currentDate, new Date())) {
-                    dayElement.classList.add('today');
-                }
-                
-                // Add click handler for adding tasks to date
-                dayElement.addEventListener('click', () => {
-                    this.showTaskModalForDate(currentDate);
-                });
-                
-                const dayTasks = this.getTasksForDate(currentDate);
-                const tasksHtml = dayTasks.map(task => 
-                    `<div class="calendar-task" 
-                          style="background: ${this.getPriorityColor(task.priority)}"
-                          data-task-id="${task.id}"
-                          onclick="event.stopPropagation(); app.editTask('${task.id}')"
-                          title="${task.title} - ${task.category}">${this.truncateText(task.title, 15)}</div>`
-                ).join('');
-                
-                dayElement.innerHTML = `
-                    <div class="day-number">${currentDate.getDate()}</div>
-                    <div class="day-tasks" id="day-${currentDate.toISOString().split('T')[0]}">
-                        ${tasksHtml}
-                        ${dayTasks.length === 0 ? '<div class="no-tasks">Click to add task</div>' : ''}
-                    </div>
-                `;
-                
-                calendarGrid.appendChild(dayElement);
-            }
-        }
-    }
-    
-    populateUpcomingTasks() {
-        const upcomingTasksElement = document.getElementById('upcomingTasks');
-        if (!upcomingTasksElement) return;
-        
-        const now = new Date();
-        const sevenDaysLater = new Date();
-        sevenDaysLater.setDate(now.getDate() + 7);
-        
-        // Get tasks for the next 7 days
-        const upcomingTasks = this.tasks
-            .filter(task => {
-                if (task.status === 'completed' || !task.dueDateTime) return false;
-                
-                const taskDate = new Date(task.dueDateTime);
-                return taskDate >= now && taskDate <= sevenDaysLater;
-            })
-            .sort((a, b) => new Date(a.dueDateTime) - new Date(b.dueDateTime))
-            .slice(0, 5); // Show first 5
-        
-        upcomingTasksElement.innerHTML = upcomingTasks.map(task => `
-            <div class="upcoming-task" data-task-id="${task.id}">
-                <div class="task-priority ${task.priority}" style="width: 12px; height: 12px; border-radius: 50%; background: ${this.getPriorityColor(task.priority)};"></div>
-                <div>
-                    <div style="font-weight: 500; color: var(--text-primary);">${this.escapeHtml(task.title)}</div>
-                    <div style="font-size: 0.8rem; color: var(--text-muted);">${task.category}</div>
-                </div>
-            </div>
-        `).join('');
-    }
-    
-    generateAnalytics() {
-        // Update productivity metrics
-        this.updateProductivityMetrics();
-        
-        // Generate simple chart placeholder
-        this.generateCompletionChart();
-        
-        // Update category breakdown
-        this.updateCategoryBreakdown();
-    }
-    
-    updateProductivityMetrics() {
-        const completedTasks = this.tasks.filter(t => t.status === 'completed');
-        const totalTasks = this.tasks.length;
-        
-        // Calculate average completion time
-        const avgCompletionElement = document.getElementById('avgCompletionTime');
-        if (avgCompletionElement) {
-            let avgTime = '0 days';
-            if (completedTasks.length > 0) {
-                const totalDays = completedTasks.reduce((sum, task) => {
-                    const created = new Date(task.createdAt);
-                    // For demo purposes, assume completed same day or use a random completion time
-                    const daysToComplete = Math.floor(Math.random() * 5) + 1;
-                    return sum + daysToComplete;
-                }, 0);
-                const avg = (totalDays / completedTasks.length).toFixed(1);
-                avgTime = `${avg} days`;
-            }
-            avgCompletionElement.textContent = avgTime;
-        }
-        
-        // Calculate completion rate
-        const completionRateElement = document.getElementById('completionRate');
-        if (completionRateElement) {
-            const rate = totalTasks > 0 ? Math.round((completedTasks.length / totalTasks) * 100) : 0;
-            completionRateElement.textContent = `${rate}%`;
-        }
-        
-        // Calculate active streak (days with task activity)
-        const streakElement = document.getElementById('activeStreak');
-        if (streakElement) {
-            const streak = this.calculateActiveStreak();
-            streakElement.textContent = `${streak} days`;
-        }
+        // Hide stats grid when not on task board
+        const statsGrid = document.querySelector('.stats-grid');
+        if (statsGrid) statsGrid.style.display = 'none';
     }
 
-    calculateActiveStreak() {
-        if (this.tasks.length === 0) return 0;
-        
-        const today = new Date();
-        let streak = 0;
-        let currentDate = new Date(today);
-        
-        // Check each day going backwards from today
-        for (let i = 0; i < 30; i++) { // Check up to 30 days
-            const dayStart = new Date(currentDate);
-            dayStart.setHours(0, 0, 0, 0);
-            const dayEnd = new Date(currentDate);
-            dayEnd.setHours(23, 59, 59, 999);
-            
-            // Check if there was any task activity on this day
-            const hasActivity = this.tasks.some(task => {
-                const taskDate = new Date(task.createdAt);
-                return taskDate >= dayStart && taskDate <= dayEnd;
-            });
-            
-            if (hasActivity) {
-                streak++;
-            } else if (streak > 0) {
-                // Streak broken
-                break;
-            }
-            
-            // Move to previous day
-            currentDate.setDate(currentDate.getDate() - 1);
+    // Initialize methods for different views
+    initializeCalendar() {
+        console.log('Initializing calendar view...');
+        // Basic calendar initialization - can be expanded later
+        const calendarGrid = document.getElementById('calendarGrid');
+        if (calendarGrid) {
+            calendarGrid.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted);">Calendar view coming soon...</div>';
         }
-        
-        return streak;
     }
     
-    generateCompletionChart() {
-        const canvas = document.getElementById('completionCanvas');
-        if (!canvas) return;
-        
-        const ctx = canvas.getContext('2d');
-        const width = canvas.width;
-        const height = canvas.height;
-        
-        // Clear canvas
-        ctx.clearRect(0, 0, width, height);
-        
-        // Generate real data from tasks
-        const chartData = this.generateChartData();
-        
-        if (chartData.length === 0) {
-            // No data message
-            ctx.fillStyle = 'var(--text-muted)';
-            ctx.font = '16px Inter';
-            ctx.textAlign = 'center';
-            ctx.fillText('No completion data available', width / 2, height / 2);
-            return;
+    initializeAnalytics() {
+        console.log('Initializing analytics view...');
+        // Basic analytics initialization - can be expanded later
+        const chartContainer = document.getElementById('completionChart');
+        if (chartContainer) {
+            chartContainer.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted);">Analytics dashboard coming soon...</div>';
         }
-        
-        // Chart settings
-        const padding = 40;
-        const chartWidth = width - 2 * padding;
-        const chartHeight = height - 2 * padding;
-        
-        // Calculate scales
-        const maxValue = Math.max(...chartData.map(d => d.completed), 10);
-        const xStep = chartWidth / (chartData.length - 1);
-        const yScale = chartHeight / maxValue;
-        
-        // Draw grid lines
-        ctx.strokeStyle = 'rgba(139, 115, 85, 0.1)';
-        ctx.lineWidth = 1;
-        
-        // Horizontal grid lines
-        for (let i = 0; i <= 5; i++) {
-            const y = padding + (chartHeight * i / 5);
-            ctx.beginPath();
-            ctx.moveTo(padding, y);
-            ctx.lineTo(width - padding, y);
-            ctx.stroke();
-            
-            // Y-axis labels
-            ctx.fillStyle = 'var(--text-muted)';
-            ctx.font = '12px Inter';
-            ctx.textAlign = 'right';
-            const value = Math.round(maxValue * (5 - i) / 5);
-            ctx.fillText(value.toString(), padding - 10, y + 4);
-        }
-        
-        // Draw completion line
-        ctx.strokeStyle = 'var(--primary)';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        
-        chartData.forEach((point, index) => {
-            const x = padding + (index * xStep);
-            const y = padding + chartHeight - (point.completed * yScale);
-            
-            if (index === 0) {
-                ctx.moveTo(x, y);
-            } else {
-                ctx.lineTo(x, y);
-            }
-        });
-        ctx.stroke();
-        
-        // Draw data points
-        ctx.fillStyle = 'var(--primary)';
-        chartData.forEach((point, index) => {
-            const x = padding + (index * xStep);
-            const y = padding + chartHeight - (point.completed * yScale);
-            
-            ctx.beginPath();
-            ctx.arc(x, y, 4, 0, 2 * Math.PI);
-            ctx.fill();
-        });
-        
-        // Draw X-axis labels
-        ctx.fillStyle = 'var(--text-muted)';
-        ctx.font = '12px Inter';
-        ctx.textAlign = 'center';
-        chartData.forEach((point, index) => {
-            const x = padding + (index * xStep);
-            ctx.fillText(point.label, x, height - 10);
-        });
-    }
-    
-    generateChartData() {
-        // Generate last 7 days of completion data
-        const data = [];
-        const today = new Date();
-        
-        for (let i = 6; i >= 0; i--) {
-            const date = new Date(today);
-            date.setDate(today.getDate() - i);
-            
-            const dayStart = new Date(date);
-            dayStart.setHours(0, 0, 0, 0);
-            const dayEnd = new Date(date);
-            dayEnd.setHours(23, 59, 59, 999);
-            
-            const completedTasks = this.tasks.filter(task => {
-                if (task.status !== 'completed') return false;
-                const createdAt = new Date(task.createdAt);
-                return createdAt >= dayStart && createdAt <= dayEnd;
-            }).length;
-            
-            data.push({
-                date: date,
-                completed: completedTasks,
-                label: date.toLocaleDateString('en-US', { weekday: 'short' })
-            });
-        }
-        
-        return data;
-    }
-    
-    updateCategoryBreakdown() {
-        const categories = ['work', 'personal', 'shopping', 'health'];
-        const categoryCounts = {};
-        
-        // Count tasks by category
-        categories.forEach(cat => {
-            categoryCounts[cat] = this.tasks.filter(t => t.category === cat).length;
-        });
-        
-        const total = Object.values(categoryCounts).reduce((sum, count) => sum + count, 0);
-        
-        // Update category percentages
-        const categoryItems = document.querySelectorAll('.category-item');
-        categoryItems.forEach(item => {
-            const categoryName = item.querySelector('.category-name').textContent.toLowerCase();
-            const categoryCount = item.querySelector('.category-count');
-            if (categoryCount && categoryCounts[categoryName] !== undefined) {
-                const percentage = total > 0 ? Math.round((categoryCounts[categoryName] / total) * 100) : 0;
-                categoryCount.textContent = `${percentage}%`;
-            }
-        });
     }
     
     initializeSearch() {
-        if (this.searchListenersSetup) {
-            this.performSearch();
-            return;
-        }
-        
-        const searchInput = document.getElementById('searchInput');
-        const searchBtn = this.domCache.get('searchBtn');
-        const clearFiltersBtn = this.domCache.get('clearFilters');
-        
-        if (searchInput && searchBtn) {
-            // Set up search functionality
-            const performSearch = () => this.performSearch();
-            
-            searchBtn.addEventListener('click', performSearch);
-            searchInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    performSearch();
-                }
-            });
-            
-            // Set up filter change listeners
-            ['statusFilter', 'priorityFilter', 'categoryFilter', 'sortBy'].forEach(filterId => {
-                const element = document.getElementById(filterId);
-                if (element) {
-                    element.addEventListener('change', performSearch);
-                }
-            });
-            
-            if (clearFiltersBtn) {
-                clearFiltersBtn.addEventListener('click', () => this.clearSearchFilters());
-            }
-            
-            this.searchListenersSetup = true;
-        }
-        
-        // Show all tasks initially
-        this.performSearch();
-    }
-    
-    performSearch() {
-        const searchInput = document.getElementById('searchInput');
-        const statusFilter = document.getElementById('statusFilter');
-        const priorityFilter = document.getElementById('priorityFilter');
-        const categoryFilter = document.getElementById('categoryFilter');
-        const sortBy = document.getElementById('sortBy');
-        const resultsContainer = document.getElementById('searchResults');
-        const resultsCount = document.getElementById('resultsCount');
-        
-        if (!searchInput || !resultsContainer || !resultsCount) return;
-        
-        const searchTerm = searchInput.value.toLowerCase().trim();
-        const statusValue = statusFilter?.value || '';
-        const priorityValue = priorityFilter?.value || '';
-        const categoryValue = categoryFilter?.value || '';
-        const sortValue = sortBy?.value || 'relevance';
-        
-        // Filter tasks with enhanced search
-        let filteredTasks = this.tasks.filter(task => {
-            const matchesSearch = !searchTerm || 
-                task.title.toLowerCase().includes(searchTerm) ||
-                (task.description && task.description.toLowerCase().includes(searchTerm)) ||
-                task.category.toLowerCase().includes(searchTerm) ||
-                task.priority.toLowerCase().includes(searchTerm) ||
-                task.status.toLowerCase().includes(searchTerm);
-                
-            const matchesStatus = !statusValue || task.status === statusValue;
-            const matchesPriority = !priorityValue || task.priority === priorityValue;
-            const matchesCategory = !categoryValue || task.category === categoryValue;
-            
-            return matchesSearch && matchesStatus && matchesPriority && matchesCategory;
-        });
-        
-        // Enhanced sorting with relevance scoring
-        switch (sortValue) {
-            case 'date':
-                filteredTasks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-                break;
-            case 'priority':
-                const priorityOrder = { high: 3, medium: 2, low: 1 };
-                filteredTasks.sort((a, b) => priorityOrder[b.priority] - priorityOrder[a.priority]);
-                break;
-            case 'title':
-                filteredTasks.sort((a, b) => a.title.localeCompare(b.title));
-                break;
-            case 'dueDate':
-                filteredTasks.sort((a, b) => {
-                    if (!a.dueDateTime) return 1;
-                    if (!b.dueDateTime) return -1;
-                    return new Date(a.dueDateTime) - new Date(b.dueDateTime);
-                });
-                break;
-            default: // relevance
-                if (searchTerm) {
-                    filteredTasks.sort((a, b) => this.calculateRelevanceScore(b, searchTerm) - this.calculateRelevanceScore(a, searchTerm));
-                }
-                break;
-        }
-        
-        // Update results count
-        resultsCount.textContent = `${filteredTasks.length} task${filteredTasks.length !== 1 ? 's' : ''} found`;
-        
-        // Render results with improved layout
-        if (filteredTasks.length === 0) {
-            resultsContainer.innerHTML = `
-                <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
-                    <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
-                    <div>No tasks found matching your criteria</div>
-                    <div style="font-size: 0.875rem; margin-top: 0.5rem;">Try adjusting your search terms or filters</div>
-                </div>
-            `;
-        } else {
-            resultsContainer.innerHTML = filteredTasks.map(task => `
-                <div class="search-result-card" data-task-id="${task.id}">
-                    <div class="result-header">
-                        <div class="result-title">${this.escapeHtml(task.title)}</div>
-                        <div class="result-actions">
-                            <button class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; margin-right: 0.5rem;" onclick="event.stopPropagation(); app.editTask('${task.id}')">
-                                <i class="fas fa-edit"></i> Edit
-                            </button>
-                            <button class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background: var(--error);" onclick="event.stopPropagation(); app.deleteTask('${task.id}')">
-                                <i class="fas fa-trash"></i> Delete
-                            </button>
-                        </div>
-                    </div>
-                    ${task.description ? `<div class="result-description">${this.escapeHtml(task.description)}</div>` : ''}
-                    <div class="result-meta">
-                        <span class="result-tag" style="background: ${this.getPriorityColor(task.priority)};">${task.priority}</span>
-                        <span class="result-tag">${task.category}</span>
-                        <span class="result-tag" style="background: ${this.getStatusColor(task.status)};">${task.status}</span>
-                        ${task.dueDateTime ? `<span class="result-tag" style="background: var(--accent);">${this.formatDate(task.dueDateTime)}</span>` : ''}
-                        <span style="margin-left: auto; color: var(--text-muted); font-size: 0.875rem;">Created: ${this.formatDate(task.createdAt)}</span>
-                    </div>
-                </div>
-            `).join('');
-        }
-        
-        // Add click handlers to results (for viewing details)
-        resultsContainer.querySelectorAll('.search-result-card').forEach(card => {
-            card.addEventListener('click', (e) => {
-                // Only if not clicking on buttons
-                if (!e.target.closest('button')) {
-                    const taskId = card.dataset.taskId;
-                    this.showTaskDetails(taskId);
-                }
-            });
-        });
-    }
-
-    calculateRelevanceScore(task, searchTerm) {
-        let score = 0;
-        const term = searchTerm.toLowerCase();
-        
-        // Title matches get highest score
-        if (task.title.toLowerCase().includes(term)) {
-            score += task.title.toLowerCase().indexOf(term) === 0 ? 10 : 5;
-        }
-        
-        // Description matches
-        if (task.description && task.description.toLowerCase().includes(term)) {
-            score += 3;
-        }
-        
-        // Category matches
-        if (task.category.toLowerCase().includes(term)) {
-            score += 2;
-        }
-        
-        // Priority matches
-        if (task.priority.toLowerCase().includes(term)) {
-            score += 2;
-        }
-        
-        // Status matches
-        if (task.status.toLowerCase().includes(term)) {
-            score += 1;
-        }
-        
-        return score;
-    }
-
-    showTaskDetails(taskId) {
-        const task = this.tasks.find(t => t.id === taskId);
-        if (task) {
-            // For now, just edit the task - could implement a detail view later
-            this.editTask(taskId);
+        console.log('Initializing search view...');
+        // Basic search initialization - can be expanded later
+        const searchResults = document.getElementById('searchResults');
+        if (searchResults) {
+            searchResults.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted);">Search functionality coming soon...</div>';
         }
     }
 
@@ -2639,6 +1914,122 @@ class TaskFlowApp {
         } catch (error) {
             console.error('Remove attachment error:', error);
             throw error;
+        }
+    }
+
+    // New navigation system
+    setupNavigation() {
+        // Get all navigation elements
+        const navItems = document.querySelectorAll('.nav-item[data-page]');
+        const categoryItems = document.querySelectorAll('.nav-item[data-category]');
+        const searchBtn = document.getElementById('searchTasksBtn');
+        
+        // Add click listeners to page navigation
+        navItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const page = item.getAttribute('data-page');
+                this.navigateToPage(page);
+            });
+        });
+        
+        // Add click listeners to category navigation
+        categoryItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const category = item.getAttribute('data-category');
+                this.filterByCategory(category);
+            });
+        });
+        
+        // Add click listener to search button
+        if (searchBtn) {
+            searchBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.navigateToPage('search');
+            });
+        }
+    }
+
+    navigateToPage(page) {
+        console.log('Navigating to page:', page);
+        
+        // Update current page
+        this.currentPage = page;
+        
+        // Clear category filter when navigating to different pages
+        this.currentCategory = null;
+        
+        // Update active states
+        this.updateNavigationActiveStates();
+        
+        // Update page title
+        this.updatePageTitle(page);
+        
+        // Show the appropriate view
+        this.showPage(page);
+    }
+
+    updateNavigationActiveStates() {
+        // Clear all active states
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        // Set active state for current page
+        const currentPageItem = document.querySelector(`[data-page="${this.currentPage}"]`);
+        if (currentPageItem) {
+            currentPageItem.classList.add('active');
+        }
+        
+        // Set active state for current category if any
+        if (this.currentCategory) {
+            const currentCategoryItem = document.querySelector(`[data-category="${this.currentCategory}"]`);
+            if (currentCategoryItem) {
+                currentCategoryItem.classList.add('active');
+            }
+        }
+    }
+
+    updatePageTitle(page) {
+        const pageTitle = document.querySelector('.page-title');
+        if (pageTitle) {
+            switch (page) {
+                case 'tasks':
+                    pageTitle.textContent = 'Task Board';
+                    break;
+                case 'calendar':
+                    pageTitle.textContent = 'Calendar View';
+                    break;
+                case 'analytics':
+                    pageTitle.textContent = 'Analytics Dashboard';
+                    break;
+                case 'search':
+                    pageTitle.textContent = 'Search Tasks';
+                    break;
+                default:
+                    pageTitle.textContent = 'TaskFlow';
+            }
+        }
+    }
+
+    showPage(page) {
+        // Hide all views first
+        this.hideAllViews();
+        
+        switch (page) {
+            case 'tasks':
+                this.showTaskBoard();
+                break;
+            case 'calendar':
+                this.showCalendarView();
+                break;
+            case 'analytics':
+                this.showAnalyticsView();
+                break;
+            case 'search':
+                this.showSearchView();
+                break;
         }
     }
 }
