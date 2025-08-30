@@ -5,7 +5,7 @@ const path = require('path');
 const fs = require('fs-extra');
 require('dotenv').config();
 
-const { DatabaseService } = require('./lib/database');
+const DatabaseService = require('./lib/database-neon');
 const { EncryptionService } = require('./lib/encryption');
 const { UserManager } = require('./lib/user-manager');
 const { Logger } = require('./lib/logger');
