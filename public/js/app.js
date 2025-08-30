@@ -617,7 +617,7 @@ class TaskFlowApp {
         });
     }
 
-    handleTaskSubmit(e) {
+    async handleTaskSubmit(e) {
         e.preventDefault();
         
         const formData = new FormData(e.target);
@@ -643,15 +643,21 @@ class TaskFlowApp {
             status: 'todo'
         };
 
-        if (this.currentTaskId) {
-            // Update existing task
-            this.updateTask(this.currentTaskId, taskData);
-        } else {
-            // Create new task
-            this.createTask(taskData);
+        try {
+            if (this.currentTaskId) {
+                // Update existing task
+                await this.updateTask(this.currentTaskId, taskData);
+            } else {
+                // Create new task
+                await this.createTask(taskData);
+            }
+            
+            // Only hide modal after task is successfully created/updated
+            this.hideTaskModal();
+        } catch (error) {
+            console.error('Task submission error:', error);
+            // Don't hide modal if there was an error
         }
-
-        this.hideTaskModal();
     }
 
     handleFileSelection(e) {
@@ -799,12 +805,14 @@ class TaskFlowApp {
                 
                 // Clear selected files
                 this.selectedFiles = [];
+                return task;
             } else {
                 throw new Error(data.error || 'Failed to create task');
             }
         } catch (error) {
             console.error('Create task error:', error);
             this.showToast('Failed to create task: ' + error.message, 'error');
+            throw error;
         }
     }
 
@@ -1806,32 +1814,48 @@ class TaskFlowApp {
             body.classList.remove('logged-out');
             body.classList.add('logged-in');
             
-            // Update user info in sidebar
-            document.getElementById('userName').textContent = this.currentUser.name;
-            document.getElementById('userStatus').textContent = 'Logged in';
-            document.getElementById('userAvatar').textContent = this.currentUser.name.charAt(0).toUpperCase();
+            // Update user info in sidebar (if elements exist)
+            const userName = document.getElementById('userName');
+            const userStatus = document.getElementById('userStatus');
+            const userAvatar = document.getElementById('userAvatar');
+            
+            if (userName) userName.textContent = this.currentUser.name;
+            if (userStatus) userStatus.textContent = 'Logged in';
+            if (userAvatar) userAvatar.textContent = this.currentUser.name.charAt(0).toUpperCase();
         } else {
             body.classList.remove('logged-in');
             body.classList.add('logged-out');
             
-            // Update user info in sidebar
-            document.getElementById('userName').textContent = 'Guest User';
-            document.getElementById('userStatus').textContent = 'Not logged in';
-            document.getElementById('userAvatar').textContent = '?';
+            // Update user info in sidebar (if elements exist)
+            const userName = document.getElementById('userName');
+            const userStatus = document.getElementById('userStatus');
+            const userAvatar = document.getElementById('userAvatar');
+            
+            if (userName) userName.textContent = 'Guest User';
+            if (userStatus) userStatus.textContent = 'Not logged in';
+            if (userAvatar) userAvatar.textContent = '?';
         }
     }
 
     updateProfileModal() {
         if (!this.currentUser) return;
         
-        document.getElementById('profileName').textContent = this.currentUser.name;
-        document.getElementById('profileEmail').textContent = this.currentUser.email;
+        const profileName = document.getElementById('profileName');
+        const profileEmail = document.getElementById('profileEmail');
+        const profileTasksCompleted = document.getElementById('profileTasksCompleted');
+        const profileMemberSince = document.getElementById('profileMemberSince');
         
-        const completedTasks = this.tasks.filter(t => t.status === 'completed').length;
-        document.getElementById('profileTasksCompleted').textContent = completedTasks.toString();
+        if (profileName) profileName.textContent = this.currentUser.name;
+        if (profileEmail) profileEmail.textContent = this.currentUser.email;
         
-        // Mock member since date
-        document.getElementById('profileMemberSince').textContent = new Date().toLocaleDateString();
+        if (profileTasksCompleted) {
+            const completedTasks = this.tasks.filter(t => t.status === 'completed').length;
+            profileTasksCompleted.textContent = completedTasks.toString();
+        }
+        
+        if (profileMemberSince) {
+            profileMemberSince.textContent = new Date().toLocaleDateString();
+        }
     }
 
     async loadUserTasks() {
