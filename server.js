@@ -37,11 +37,24 @@ async function initializeServices() {
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-app.use(express.static('public'));
+
+// Serve static files - works both locally and on Vercel
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/css', express.static(path.join(__dirname, 'public', 'css')));
+app.use('/js', express.static(path.join(__dirname, 'public', 'js')));
 
 // Serve index.html at root
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Explicit routes for static files (fallback for Vercel)
+app.get('/js/app.js', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'js', 'app.js'));
+});
+
+app.get('/css/main.css', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'css', 'main.css'));
 });
 
 // File upload configuration
@@ -356,6 +369,12 @@ async function startServer() {
   app.listen(PORT, () => {
     logger.info(`Server running on http://localhost:${PORT}`);
     logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    
+    // Make URL more visible
+    console.log('\n🚀 Daily Vibe is ready!');
+    console.log('📱 Open your browser to:');
+    console.log(`   http://localhost:${PORT}`);
+    console.log('\n✨ Your task management app is waiting for you!\n');
   });
 }
 
