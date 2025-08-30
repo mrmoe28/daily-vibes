@@ -10,7 +10,8 @@
     "vercel-build": "mkdir -p data && mkdir -p uploads && echo 'Build completed for Vercel'",
     "test": "playwright test",
     "test:ui": "playwright test --ui",
-    "lint": "echo 'Linting not configured yet'"
+    "lint": "echo 'Linting not configured yet'",
+    "update-schema": "node scripts/update-schema.js"
   },
   "dependencies": {
     "@corsaro-creative/super-react": "^0.2.0",
