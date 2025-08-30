@@ -2605,66 +2605,103 @@ class TaskFlowApp {
     }
     
     async function initApp() {
-        // Make app globally available for onclick handlers
-        window.app = new TaskFlowApp();
-        await window.app.init();
-        
-        // Add some sample tasks for demonstration if no tasks exist
-        if (window.app.tasks.length === 0) {
-        const now = new Date();
-    const today = new Date(now);
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    const sampleTasks = [
-        {
-            id: window.app.generateId(),
-            title: 'Complete project proposal',
-            description: 'Finish the Q4 project proposal document and send to stakeholders',
-            priority: 'high',
-            category: 'work',
-            status: 'todo',
-            dueDateTime: `${today.toISOString().split('T')[0]}T14:00:00.000Z`,
-            createdAt: new Date().toISOString()
-        },
-        {
-            id: window.app.generateId(),
-            title: 'Buy groceries',
-            description: 'Milk, bread, eggs, and vegetables',
-            priority: 'medium',
-            category: 'shopping',
-            status: 'todo',
-            dueDateTime: `${tomorrow.toISOString().split('T')[0]}T10:30:00.000Z`,
-            createdAt: new Date().toISOString()
-        },
-        {
-            id: window.app.generateId(),
-            title: 'Review code changes',
-            description: 'Review pull request #123 for the new feature',
-            priority: 'medium',
-            category: 'work',
-            status: 'progress',
-            dueDateTime: `${today.toISOString().split('T')[0]}T16:45:00.000Z`,
-            createdAt: new Date().toISOString()
-        },
-        {
-            id: window.app.generateId(),
-            title: 'Morning workout',
-            description: '30 minutes cardio and strength training',
-            priority: 'low',
-            category: 'health',
-            status: 'completed',
-            dueDateTime: `${today.toISOString().split('T')[0]}T07:00:00.000Z`,
-            createdAt: new Date().toISOString()
-        }
-    ];
+        try {
+            // Make app globally available for onclick handlers
+            window.app = new TaskFlowApp();
+            await window.app.init();
+            
+            // Add some sample tasks for demonstration if no tasks exist
+            if (window.app.tasks.length === 0) {
+                const now = new Date();
+                const today = new Date(now);
+                const tomorrow = new Date(now);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                
+                const sampleTasks = [
+                    {
+                        id: window.app.generateId(),
+                        title: 'Complete project proposal',
+                        description: 'Finish the Q4 project proposal document and send to stakeholders',
+                        priority: 'high',
+                        category: 'work',
+                        status: 'todo',
+                        dueDateTime: `${today.toISOString().split('T')[0]}T14:00:00.000Z`,
+                        createdAt: new Date().toISOString()
+                    },
+                    {
+                        id: window.app.generateId(),
+                        title: 'Buy groceries',
+                        description: 'Milk, bread, eggs, and vegetables',
+                        priority: 'medium',
+                        category: 'shopping',
+                        status: 'todo',
+                        dueDateTime: `${tomorrow.toISOString().split('T')[0]}T10:30:00.000Z`,
+                        createdAt: new Date().toISOString()
+                    },
+                    {
+                        id: window.app.generateId(),
+                        title: 'Review code changes',
+                        description: 'Review pull request #123 for the new feature',
+                        priority: 'medium',
+                        category: 'work',
+                        status: 'progress',
+                        dueDateTime: `${today.toISOString().split('T')[0]}T16:45:00.000Z`,
+                        createdAt: new Date().toISOString()
+                    },
+                    {
+                        id: window.app.generateId(),
+                        title: 'Morning workout',
+                        description: '30 minutes cardio and strength training',
+                        priority: 'low',
+                        category: 'health',
+                        status: 'completed',
+                        dueDateTime: `${today.toISOString().split('T')[0]}T07:00:00.000Z`,
+                        createdAt: new Date().toISOString()
+                    }
+                ];
 
-    // Create sample tasks using the API
-    for (const sampleTask of sampleTasks) {
-        await window.app.createTask(sampleTask);
-    }
-}
+                // Create sample tasks using the API
+                for (const sampleTask of sampleTasks) {
+                    try {
+                        await window.app.createTask(sampleTask);
+                    } catch (error) {
+                        console.warn('Failed to create sample task:', error);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Failed to initialize app:', error);
+        }
     }
 })().catch(error => {
     console.error('Failed to initialize app:', error);
 });
+
+// Global fallback navigation handler
+window.handleNavigation = function(page) {
+    if (window.app && window.app.handleNavigation) {
+        window.app.handleNavigation(page);
+    } else {
+        console.warn('App not ready, navigation will be handled when ready');
+        // Retry after a short delay
+        setTimeout(() => {
+            if (window.app && window.app.handleNavigation) {
+                window.app.handleNavigation(page);
+            }
+        }, 100);
+    }
+};
+
+window.filterByCategory = function(category) {
+    if (window.app && window.app.filterByCategory) {
+        window.app.filterByCategory(category);
+    } else {
+        console.warn('App not ready, category filter will be handled when ready');
+        // Retry after a short delay
+        setTimeout(() => {
+            if (window.app && window.app.filterByCategory) {
+                window.app.filterByCategory(category);
+            }
+        }, 100);
+    }
+};
