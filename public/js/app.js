@@ -1,4 +1,52 @@
 // TaskFlow - Modern Task Manager (Performance Optimized)
+
+// Global fallback navigation handler - Define immediately for onclick handlers
+window.handleNavigation = function(page) {
+    console.log('Global handleNavigation called with page:', page);
+    console.log('window.app exists:', !!window.app);
+    console.log('window.app.handleNavigation exists:', !!(window.app && window.app.handleNavigation));
+    
+    if (window.app && window.app.handleNavigation) {
+        console.log('Calling app.handleNavigation');
+        window.app.handleNavigation(page);
+    } else {
+        console.warn('App not ready, navigation will be handled when ready');
+        // Retry after a short delay
+        setTimeout(() => {
+            console.log('Retrying navigation for page:', page);
+            if (window.app && window.app.handleNavigation) {
+                console.log('App is now ready, calling handleNavigation');
+                window.app.handleNavigation(page);
+            } else {
+                console.error('App still not ready after retry');
+            }
+        }, 100);
+    }
+};
+
+window.filterByCategory = function(category) {
+    console.log('Global filterByCategory called with category:', category);
+    console.log('window.app exists:', !!window.app);
+    console.log('window.app.filterByCategory exists:', !!(window.app && window.app.filterByCategory));
+    
+    if (window.app && window.app.filterByCategory) {
+        console.log('Calling app.filterByCategory');
+        window.app.filterByCategory(category);
+    } else {
+        console.warn('App not ready, category filter will be handled when ready');
+        // Retry after a short delay
+        setTimeout(() => {
+            console.log('Retrying category filter for:', category);
+            if (window.app && window.app.filterByCategory) {
+                console.log('App is now ready, calling filterByCategory');
+                window.app.filterByCategory(category);
+            } else {
+                console.error('App still not ready after retry');
+            }
+        }, 100);
+    }
+};
+
 class TaskFlowApp {
     constructor() {
         this.tasks = JSON.parse(localStorage.getItem('tasks')) || [];
@@ -2676,32 +2724,3 @@ class TaskFlowApp {
 })().catch(error => {
     console.error('Failed to initialize app:', error);
 });
-
-// Global fallback navigation handler
-window.handleNavigation = function(page) {
-    if (window.app && window.app.handleNavigation) {
-        window.app.handleNavigation(page);
-    } else {
-        console.warn('App not ready, navigation will be handled when ready');
-        // Retry after a short delay
-        setTimeout(() => {
-            if (window.app && window.app.handleNavigation) {
-                window.app.handleNavigation(page);
-            }
-        }, 100);
-    }
-};
-
-window.filterByCategory = function(category) {
-    if (window.app && window.app.filterByCategory) {
-        window.app.filterByCategory(category);
-    } else {
-        console.warn('App not ready, category filter will be handled when ready');
-        // Retry after a short delay
-        setTimeout(() => {
-            if (window.app && window.app.filterByCategory) {
-                window.app.filterByCategory(category);
-            }
-        }, 100);
-    }
-};
