@@ -1,0 +1,204 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e7]: 
+        - generic [ref=e8]: TaskFlow
+      - navigation [ref=e9]:
+        - generic [ref=e10]:
+          - generic [ref=e11]: Overview
+          - link " Task Board" [ref=e12] [cursor=pointer]:
+            - /url: "#"
+            - generic [ref=e13] [cursor=pointer]: 
+            - generic [ref=e14] [cursor=pointer]: Task Board
+          - link " Calendar" [ref=e15] [cursor=pointer]:
+            - /url: "#"
+            - generic [ref=e16] [cursor=pointer]: 
+            - generic [ref=e17] [cursor=pointer]: Calendar
+          - link " Analytics" [ref=e18] [cursor=pointer]:
+            - /url: "#"
+            - generic [ref=e19] [cursor=pointer]: 
+            - generic [ref=e20] [cursor=pointer]: Analytics
+        - generic [ref=e21]:
+          - generic [ref=e22]: Categories
+          - link " Work 12" [ref=e23] [cursor=pointer]:
+            - /url: "#"
+            - generic [ref=e24] [cursor=pointer]: 
+            - generic [ref=e25] [cursor=pointer]: Work
+            - generic [ref=e26] [cursor=pointer]: "12"
+          - link " Personal 8" [ref=e27] [cursor=pointer]:
+            - /url: "#"
+            - generic [ref=e28] [cursor=pointer]: 
+            - generic [ref=e29] [cursor=pointer]: Personal
+            - generic [ref=e30] [cursor=pointer]: "8"
+          - link " Shopping 5" [ref=e31] [cursor=pointer]:
+            - /url: "#"
+            - generic [ref=e32] [cursor=pointer]: 
+            - generic [ref=e33] [cursor=pointer]: Shopping
+            - generic [ref=e34] [cursor=pointer]: "5"
+          - link " Health 3" [ref=e35] [cursor=pointer]:
+            - /url: "#"
+            - generic [ref=e36] [cursor=pointer]: 
+            - generic [ref=e37] [cursor=pointer]: Health
+            - generic [ref=e38] [cursor=pointer]: "3"
+        - generic [ref=e39]:
+          - generic [ref=e40]: Quick Actions
+          - link "+ Add Task" [ref=e41] [cursor=pointer]:
+            - /url: "#"
+            - generic [ref=e42] [cursor=pointer]: +
+            - generic [ref=e43] [cursor=pointer]: Add Task
+          - link " Search" [ref=e44] [cursor=pointer]:
+            - /url: "#"
+            - generic [ref=e45] [cursor=pointer]: 
+            - generic [ref=e46] [cursor=pointer]: Search
+        - generic [ref=e47]:
+          - generic [ref=e48]: Account
+          - text: 
+          - link " Login" [ref=e49] [cursor=pointer]:
+            - /url: "#"
+            - generic [ref=e50] [cursor=pointer]: 
+            - generic [ref=e51] [cursor=pointer]: Login
+          - text: 
+      - generic [ref=e53]:
+        - generic [ref=e54]: "?"
+        - generic [ref=e55]:
+          - generic [ref=e56]: Guest User
+          - generic [ref=e57]: Not logged in
+    - main [ref=e58]:
+      - generic [ref=e59]:
+        - heading "Task Board" [level=1] [ref=e60]
+        - button "Add new task" [ref=e62] [cursor=pointer]:
+          - generic [ref=e63] [cursor=pointer]: +
+          - text: Add Task
+      - generic [ref=e64]:
+        - generic [ref=e65]:
+          - generic [ref=e66]: "4"
+          - generic [ref=e67]: Total Tasks
+        - generic [ref=e68]:
+          - generic [ref=e69]: "2"
+          - generic [ref=e70]: To Do
+        - generic [ref=e71]:
+          - generic [ref=e72]: "1"
+          - generic [ref=e73]: In Progress
+        - generic [ref=e74]:
+          - generic [ref=e75]: "1"
+          - generic [ref=e76]: Completed
+      - region "Task management board" [ref=e77]:
+        - region "To do tasks" [ref=e78]:
+          - generic [ref=e79]:
+            - heading "To Do" [level=2] [ref=e80]:
+              - generic [ref=e81]: 
+              - text: To Do
+            - generic "Number of to do tasks" [ref=e82]: "2"
+          - list "To do task list" [ref=e83]:
+            - 'listitem "Task: Complete project proposal" [ref=e84] [cursor=pointer]':
+              - generic [ref=e86] [cursor=pointer]: Complete project proposal
+              - generic [ref=e87] [cursor=pointer]: Finish the Q4 project proposal document and send to stakeholders
+              - generic [ref=e88] [cursor=pointer]:
+                - generic [ref=e89] [cursor=pointer]:
+                  - generic [ref=e90] [cursor=pointer]: 
+                  - text: Tomorrow at 10:00
+                - generic [ref=e92] [cursor=pointer]: work
+              - generic [ref=e93] [cursor=pointer]:
+                - 'button "Edit task: Complete project proposal" [ref=e94] [cursor=pointer]':
+                  - generic [ref=e95] [cursor=pointer]: 
+                - 'button "Delete task: Complete project proposal" [ref=e96] [cursor=pointer]':
+                  - generic [ref=e97] [cursor=pointer]: 
+            - 'listitem "Task: Buy groceries" [ref=e98] [cursor=pointer]':
+              - generic [ref=e100] [cursor=pointer]: Buy groceries
+              - generic [ref=e101] [cursor=pointer]: Milk, bread, eggs, and vegetables
+              - generic [ref=e102] [cursor=pointer]:
+                - generic [ref=e103] [cursor=pointer]:
+                  - generic [ref=e104] [cursor=pointer]: 
+                  - text: 8/31/2025 at 06:30
+                - generic [ref=e106] [cursor=pointer]: shopping
+              - generic [ref=e107] [cursor=pointer]:
+                - 'button "Edit task: Buy groceries" [ref=e108] [cursor=pointer]':
+                  - generic [ref=e109] [cursor=pointer]: 
+                - 'button "Delete task: Buy groceries" [ref=e110] [cursor=pointer]':
+                  - generic [ref=e111] [cursor=pointer]: 
+        - region "In progress tasks" [ref=e112]:
+          - generic [ref=e113]:
+            - heading "In Progress" [level=2] [ref=e114]:
+              - generic [ref=e115]: 
+              - text: In Progress
+            - generic "Number of in progress tasks" [ref=e116]: "1"
+          - list "In progress task list" [ref=e117]:
+            - 'listitem "Task: Review code changes" [ref=e118] [cursor=pointer]':
+              - generic [ref=e120] [cursor=pointer]: Review code changes
+              - generic [ref=e121] [cursor=pointer]: "Review pull request #123 for the new feature"
+              - generic [ref=e122] [cursor=pointer]:
+                - generic [ref=e123] [cursor=pointer]:
+                  - generic [ref=e124] [cursor=pointer]: 
+                  - text: Tomorrow at 12:45
+                - generic [ref=e126] [cursor=pointer]: work
+              - generic [ref=e127] [cursor=pointer]:
+                - 'button "Edit task: Review code changes" [ref=e128] [cursor=pointer]':
+                  - generic [ref=e129] [cursor=pointer]: 
+                - 'button "Delete task: Review code changes" [ref=e130] [cursor=pointer]':
+                  - generic [ref=e131] [cursor=pointer]: 
+        - region "Completed tasks" [ref=e132]:
+          - generic [ref=e133]:
+            - heading "Completed" [level=2] [ref=e134]:
+              - generic [ref=e135]: 
+              - text: Completed
+            - generic "Number of completed tasks" [ref=e136]: "1"
+          - list "Completed task list" [ref=e137]:
+            - 'listitem "Task: Morning workout" [ref=e138] [cursor=pointer]':
+              - generic [ref=e140] [cursor=pointer]: Morning workout
+              - generic [ref=e141] [cursor=pointer]: 30 minutes cardio and strength training
+              - generic [ref=e142] [cursor=pointer]:
+                - generic [ref=e143] [cursor=pointer]:
+                  - generic [ref=e144] [cursor=pointer]: 
+                  - text: Tomorrow at 03:00
+                - generic [ref=e146] [cursor=pointer]: health
+              - generic [ref=e147] [cursor=pointer]:
+                - 'button "Edit task: Morning workout" [ref=e148] [cursor=pointer]':
+                  - generic [ref=e149] [cursor=pointer]: 
+                - 'button "Delete task: Morning workout" [ref=e150] [cursor=pointer]':
+                  - generic [ref=e151] [cursor=pointer]: 
+      - text:   
+  - dialog "Add New Task" [ref=e152]:
+    - document [ref=e153]:
+      - generic [ref=e154]:
+        - heading "Add New Task" [level=2] [ref=e155]
+        - button "Close modal" [ref=e156] [cursor=pointer]:
+          - generic [ref=e157] [cursor=pointer]: 
+      - generic [ref=e158]: Fill out the form below to add or edit a task
+      - generic [ref=e159]:
+        - generic [ref=e160]:
+          - generic [ref=e161]: Task Title
+          - textbox "Task Title" [ref=e162]: Performance Test Task
+        - generic [ref=e163]:
+          - generic [ref=e164]: Description
+          - textbox "Description" [active] [ref=e165]: Testing INP performance
+        - generic [ref=e166]:
+          - generic [ref=e167]: Priority
+          - combobox "Select task priority" [ref=e168] [cursor=pointer]:
+            - option "Low"
+            - option "Medium"
+            - option "High" [selected]
+        - generic [ref=e169]:
+          - generic [ref=e170]: Category
+          - combobox "Select task category" [ref=e171] [cursor=pointer]:
+            - option "Work" [selected]
+            - option "Personal"
+            - option "Shopping"
+            - option "Health"
+        - generic [ref=e172]:
+          - generic [ref=e173]: Due Date
+          - textbox "Due Date" [ref=e174]: 2025-08-30
+        - generic [ref=e175]:
+          - generic [ref=e176]: Due Time
+          - textbox "Due Time" [ref=e177]: 23:08
+        - generic [ref=e178]:
+          - generic [ref=e179]: Attachments
+          - button "Attachments" [ref=e180]
+        - generic [ref=e181]:
+          - button "Cancel" [ref=e182] [cursor=pointer]
+          - button "Save Task" [ref=e183] [cursor=pointer]
+  - text:   
+```

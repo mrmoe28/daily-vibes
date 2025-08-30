@@ -1,0 +1,35 @@
+# Exclude README and documentation files
+README.md
+README.txt
+*.md
+
+# Exclude development files
+.git/
+.gitignore
+node_modules/
+
+# Exclude test files
+tests/
+test/
+*.test.js
+*.spec.js
+test-results/
+playwright.config.js
+
+# Exclude logs and temporary files
+logs/
+*.log
+tmp/
+temp/
+
+# Exclude local environment files
+.env.local
+.env.development
+.env.test
+
+# Exclude editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

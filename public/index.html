@@ -1,0 +1,2015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow - Modern Task Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #8b7355;
+            --primary-dark: #6b5840;
+            --secondary: #a68b5b;
+            --accent: #9d8f74;
+            --success: #7a8471;
+            --warning: #c4a574;
+            --error: #c07f7f;
+            --background: #f5f3f0;
+            --surface: rgba(139, 115, 85, 0.08);
+            --surface-hover: rgba(139, 115, 85, 0.15);
+            --text-primary: #3c3632;
+            --text-secondary: rgba(60, 54, 50, 0.85);
+            --text-muted: rgba(60, 54, 50, 0.65);
+            --border: rgba(139, 115, 85, 0.25);
+            --shadow: 0 8px 32px rgba(139, 115, 85, 0.15);
+            --shadow-lg: 0 20px 60px rgba(139, 115, 85, 0.2);
+            --gradient-primary: linear-gradient(135deg, #8b7355 0%, #6b5840 100%);
+            --gradient-secondary: linear-gradient(135deg, #a68b5b 0%, #8b7355 100%);
+            --gradient-accent: linear-gradient(135deg, #9d8f74 0%, #8b7355 100%);
+            --gradient-success: linear-gradient(135deg, #7a8471 0%, #6b7562 100%);
+            --gradient-warning: linear-gradient(135deg, #c4a574 0%, #b39660 100%);
+            --gradient-error: linear-gradient(135deg, #c07f7f 0%, #a86b6b 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            /* Performance optimizations */
+            will-change: scroll-position;
+            contain: layout style paint;
+        }
+
+        /* Animated Background */
+        .background-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(166, 139, 91, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(157, 143, 116, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(122, 132, 113, 0.1) 0%, transparent 50%);
+            animation: backgroundShift 20s ease-in-out infinite;
+            /* Performance optimizations */
+            will-change: transform;
+            contain: layout style paint;
+        }
+
+        @keyframes backgroundShift {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.1) rotate(1deg); }
+        }
+
+        /* App Layout */
+        .app-container {
+            display: flex;
+            height: 100vh;
+            background: var(--background);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--surface);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            left: 0;
+            top: 0;
+            z-index: 100;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .app-logo {
+            font-size: 1.5rem;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .app-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 1rem 0;
+        }
+
+        .nav-section {
+            margin-bottom: 2rem;
+        }
+
+        .nav-section-title {
+            padding: 0 1.5rem 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .nav-item:hover {
+            background: var(--surface-hover);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .nav-item i {
+            width: 1.25rem;
+            text-align: center;
+        }
+
+        .nav-item .badge {
+            margin-left: auto;
+            background: var(--accent);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        /* Task Manager Components */
+        .task-manager {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 2rem;
+            height: calc(100vh - 200px);
+        }
+
+        .task-column {
+            background: var(--surface);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .column-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .column-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .column-count {
+            background: var(--surface-hover);
+            color: var(--text-secondary);
+            padding: 0.25rem 0.75rem;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .task-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            /* Performance optimizations for scrolling */
+            will-change: scroll-position;
+            contain: layout style;
+            /* Enable hardware acceleration for smooth scrolling */
+            transform: translateZ(0);
+            /* Optimize scroll performance */
+            scroll-behavior: smooth;
+        }
+
+        .task-card {
+            background: var(--surface-hover);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            position: relative;
+            /* Enhanced performance optimizations */
+            will-change: transform, box-shadow;
+            contain: layout style paint;
+            transform: translateZ(0);
+            backface-visibility: hidden;
+            /* Optimize rendering for frequent updates */
+            isolation: isolate;
+        }
+
+        .task-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+            border-color: var(--primary);
+        }
+
+        .task-priority {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .priority-high { background: var(--error); }
+        .priority-medium { background: var(--warning); }
+        .priority-low { background: var(--success); }
+
+        .task-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .task-description {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            line-height: 1.4;
+        }
+
+        .task-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .task-date {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .task-tags {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .task-tag {
+            background: var(--primary);
+            color: white;
+            padding: 0.125rem 0.5rem;
+            border-radius: 8px;
+            font-size: 0.625rem;
+            font-weight: 500;
+        }
+
+        /* Add Task Button */
+        .add-task-btn {
+            background: var(--gradient-primary);
+            border: none;
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .add-task-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            padding: 2rem;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .close-btn:hover {
+            background: var(--surface-hover);
+            color: var(--text-primary);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            background: #ffffff;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            /* Performance optimizations for inputs */
+            will-change: border-color;
+            contain: layout style;
+            transform: translateZ(0);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(139, 115, 85, 0.15);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+            /* Optimize for frequent text updates */
+            will-change: contents;
+            contain: layout style;
+        }
+
+        /* Specific optimizations for performance-critical inputs */
+        #taskTitle {
+            /* Critical performance optimizations */
+            will-change: value, border-color;
+            contain: layout style paint;
+            transform: translateZ(0);
+            /* Prevent layout thrashing during typing */
+            backface-visibility: hidden;
+            /* Isolate rendering context */
+            isolation: isolate;
+        }
+
+        #taskDescription {
+            /* Optimize textarea for content changes */
+            will-change: contents, border-color;
+            contain: layout style;
+            transform: translateZ(0);
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 0.75rem;
+            background: #ffffff;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.875rem;
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--surface-hover);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-total { color: var(--accent); }
+        .stat-todo { color: var(--warning); }
+        .stat-progress { color: var(--primary); }
+        .stat-completed { color: var(--success); }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .task-manager {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1rem;
+            }
+            
+            .page-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--border);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Screen Reader Only - for accessibility */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--surface);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1rem 1.5rem;
+            color: var(--text-primary);
+            box-shadow: var(--shadow);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            border-color: var(--success);
+        }
+
+        .toast.error {
+            border-color: var(--error);
+        }
+
+        /* Drag and Drop */
+        .task-card.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+        }
+
+        .task-column.drag-over {
+            background: var(--surface-hover);
+            border-color: var(--primary);
+        }
+
+        /* Profile Styles */
+        .profile-info {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .profile-value {
+            padding: 0.75rem;
+            background: var(--surface-hover);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        /* User indicator in sidebar */
+        .user-indicator {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border);
+            margin-top: auto;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        /* Authentication states */
+        .logged-out #logoutBtn,
+        .logged-out #profileBtn {
+            display: none !important;
+        }
+
+        .logged-in #loginBtn {
+            display: none !important;
+        }
+
+        .logged-in #logoutBtn,
+        .logged-in #profileBtn {
+            display: flex !important;
+        }
+
+        /* File Upload Styles */
+        .file-preview {
+            margin-top: 0.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            background: var(--surface-hover);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.875rem;
+        }
+
+        .file-remove {
+            background: var(--error);
+            color: white;
+            border: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .file-remove:hover {
+            opacity: 0.8;
+        }
+
+        /* Task attachment display */
+        .task-attachments {
+            margin-top: 0.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+        }
+
+        .attachment-item {
+            background: var(--surface-hover);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .attachment-item:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Calendar View Styles */
+        .calendar-view {
+            padding: 2rem;
+        }
+
+        .calendar-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .calendar-navigation {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .calendar-navigation button {
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+        }
+
+        .current-month {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+            min-width: 200px;
+            text-align: center;
+        }
+
+        .calendar-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .calendar-grid {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+
+        .calendar-header {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            background: var(--surface-hover);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .day-header {
+            padding: 1rem;
+            text-align: center;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-right: 1px solid var(--border);
+        }
+
+        .day-header:last-child {
+            border-right: none;
+        }
+
+        .calendar-body {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+        }
+
+        .calendar-day {
+            min-height: 120px;
+            padding: 0.5rem;
+            border-right: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .calendar-day:hover {
+            background: var(--surface-hover);
+        }
+
+        .calendar-day:last-child {
+            border-right: none;
+        }
+
+        .calendar-day.other-month {
+            color: var(--text-muted);
+            background: var(--surface-hover);
+        }
+
+        .calendar-day.today {
+            background: var(--surface-hover);
+            border: 2px solid var(--primary);
+        }
+
+        .day-number {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .day-tasks {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .calendar-task {
+            padding: 0.25rem 0.5rem;
+            background: var(--primary);
+            color: white;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .calendar-task:hover {
+            transform: scale(1.02);
+            opacity: 0.8;
+        }
+
+        .no-tasks {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            font-style: italic;
+            text-align: center;
+            padding: 0.25rem;
+            opacity: 0.7;
+        }
+
+        .calendar-day:hover .no-tasks {
+            opacity: 1;
+            color: var(--primary);
+        }
+
+        .calendar-sidebar {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .upcoming-tasks h4 {
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        .upcoming-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .upcoming-task {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: var(--surface-hover);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .upcoming-task:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        /* Analytics View Styles */
+        .analytics-view {
+            padding: 2rem;
+        }
+
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            grid-template-rows: auto auto;
+            gap: 2rem;
+        }
+
+        .chart-container {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            grid-row: span 2;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-header h3 {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .chart {
+            position: relative;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--surface-hover);
+            border-radius: 8px;
+        }
+
+        .productivity-stats {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .productivity-stats h3 {
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+        }
+
+        .metrics-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .metric-card {
+            text-align: center;
+            padding: 1rem;
+            background: var(--surface-hover);
+            border-radius: 8px;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .category-breakdown {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .category-breakdown h3 {
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+        }
+
+        .category-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .category-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem;
+            background: var(--surface-hover);
+            border-radius: 8px;
+        }
+
+        .category-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+
+        .category-name {
+            flex: 1;
+            color: var(--text-primary);
+        }
+
+        .category-count {
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        /* Search View Styles */
+        .search-view {
+            padding: 2rem;
+        }
+
+        .search-container {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+        }
+
+        .search-header {
+            margin-bottom: 2rem;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            position: relative;
+            max-width: 600px;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 1rem;
+            color: var(--text-muted);
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            background: var(--surface-hover);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .search-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: var(--surface-hover);
+            border-radius: 8px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            min-width: 150px;
+        }
+
+        .filter-group label {
+            font-weight: 500;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+        }
+
+        .search-results {
+            min-height: 400px;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .results-header h4 {
+            color: var(--text-primary);
+        }
+
+        .sort-options {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .results-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .search-result-card {
+            background: var(--surface-hover);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .search-result-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+            border-color: var(--primary);
+        }
+
+        .result-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .result-description {
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+            line-height: 1.4;
+        }
+
+        .result-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .result-tag {
+            background: var(--primary);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 0.25rem;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .search-result-card:hover .result-actions {
+            opacity: 1;
+        }
+
+        /* Loading and Error States */
+        .loading-overlay,
+        .error-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(245, 243, 240, 0.95);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            border-radius: 12px;
+        }
+
+        .loading-content,
+        .error-content {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .loading-spinner {
+            margin-bottom: 1rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--border);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .error-icon {
+            font-size: 3rem;
+            color: var(--error);
+            margin-bottom: 1rem;
+        }
+
+        .error-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .error-message {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+
+        .retry-btn {
+            padding: 0.75rem 1.5rem;
+            background: var(--gradient-primary);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .retry-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
+
+        /* Position relative for views to contain overlays */
+        .calendar-view,
+        .analytics-view,
+        .search-view,
+        .task-manager {
+            position: relative;
+        }
+
+        /* Responsive Design for New Views */
+        @media (max-width: 1024px) {
+            .analytics-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .chart-container {
+                grid-row: span 1;
+            }
+            
+            .calendar-controls {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+            }
+            
+            .calendar-navigation {
+                justify-content: center;
+            }
+            
+            .calendar-actions {
+                justify-content: center;
+            }
+            
+            .result-header {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .result-actions {
+                opacity: 1; /* Always show on touch devices */
+            }
+        }
+
+        @media (max-width: 768px) {
+            .calendar-day {
+                min-height: 80px;
+                padding: 0.25rem;
+            }
+            
+            .day-number {
+                font-size: 0.875rem;
+            }
+            
+            .calendar-task {
+                font-size: 0.625rem;
+                padding: 0.125rem 0.25rem;
+                margin-bottom: 0.125rem;
+            }
+            
+            .no-tasks {
+                font-size: 0.625rem;
+            }
+            
+            .search-filters {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+            
+            .filter-group {
+                min-width: auto;
+            }
+            
+            .search-box {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.75rem;
+            }
+            
+            .search-box input {
+                padding-left: 1rem;
+            }
+            
+            .search-box i {
+                display: none;
+            }
+            
+            .search-result-card {
+                padding: 1rem;
+            }
+            
+            .result-meta {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+            
+            .chart-container {
+                padding: 1rem;
+            }
+            
+            .chart {
+                height: 200px;
+            }
+            
+            .metrics-grid {
+                gap: 0.75rem;
+            }
+            
+            .metric-card {
+                padding: 0.75rem;
+            }
+            
+            .metric-value {
+                font-size: 1.5rem;
+            }
+            
+            .upcoming-task {
+                padding: 0.5rem;
+            }
+            
+            .calendar-sidebar {
+                padding: 1rem;
+                margin-top: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .calendar-grid {
+                margin-bottom: 1rem;
+            }
+            
+            .calendar-body {
+                grid-template-columns: repeat(7, 1fr);
+            }
+            
+            .calendar-day {
+                min-height: 60px;
+                padding: 0.125rem;
+            }
+            
+            .day-number {
+                font-size: 0.75rem;
+            }
+            
+            .calendar-task {
+                font-size: 0.5rem;
+                padding: 0.0625rem 0.125rem;
+            }
+            
+            .search-container {
+                padding: 1rem;
+            }
+            
+            .analytics-view {
+                padding: 1rem;
+            }
+            
+            .calendar-view {
+                padding: 1rem;
+            }
+            
+            .current-month {
+                font-size: 1.25rem;
+                min-width: 150px;
+            }
+            
+            .calendar-controls button {
+                padding: 0.375rem 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="background-animation"></div>
+    
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="app-logo">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <div class="app-title">TaskFlow</div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Overview</div>
+                    <a href="#" class="nav-item active" data-page="tasks">
+                        <i class="fas fa-columns"></i>
+                        <span>Task Board</span>
+                    </a>
+                    <a href="#" class="nav-item" data-page="calendar">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Calendar</span>
+                    </a>
+                    <a href="#" class="nav-item" data-page="analytics">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Analytics</span>
+                    </a>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Categories</div>
+                    <a href="#" class="nav-item" data-category="work">
+                        <i class="fas fa-briefcase"></i>
+                        <span>Work</span>
+                        <span class="badge">12</span>
+                    </a>
+                    <a href="#" class="nav-item" data-category="personal">
+                        <i class="fas fa-user"></i>
+                        <span>Personal</span>
+                        <span class="badge">8</span>
+                    </a>
+                    <a href="#" class="nav-item" data-category="shopping">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span>Shopping</span>
+                        <span class="badge">5</span>
+                    </a>
+                    <a href="#" class="nav-item" data-category="health">
+                        <i class="fas fa-heartbeat"></i>
+                        <span>Health</span>
+                        <span class="badge">3</span>
+                    </a>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Quick Actions</div>
+                    <a href="#" class="nav-item" id="addTaskBtn">
+                        <i class="fas fa-plus"></i>
+                        <span>Add Task</span>
+                    </a>
+                    <a href="#" class="nav-item" id="searchTasksBtn">
+                        <i class="fas fa-search"></i>
+                        <span>Search</span>
+                    </a>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Account</div>
+                    <a href="#" class="nav-item" id="profileBtn">
+                        <i class="fas fa-user"></i>
+                        <span>Profile</span>
+                    </a>
+                    <a href="#" class="nav-item" id="loginBtn">
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span>Login</span>
+                    </a>
+                    <a href="#" class="nav-item" id="logoutBtn" style="display: none;">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </a>
+                </div>
+            </nav>
+            
+            <div class="user-indicator">
+                <div class="user-info" id="userInfo">
+                    <div class="user-avatar" id="userAvatar">?</div>
+                    <div>
+                        <div id="userName">Guest User</div>
+                        <div id="userStatus" style="font-size: 0.75rem; color: var(--text-muted);">Not logged in</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content" role="main">
+            <header class="page-header">
+                <h1 class="page-title">Task Board</h1>
+                <div class="header-actions">
+                    <button class="add-task-btn" id="headerAddTaskBtn" aria-label="Add new task">
+                        <i class="fas fa-plus" aria-hidden="true"></i>
+                        Add Task
+                    </button>
+                </div>
+            </header>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value stat-total" id="totalTasks">0</div>
+                    <div class="stat-label">Total Tasks</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value stat-todo" id="todoTasks">0</div>
+                    <div class="stat-label">To Do</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value stat-progress" id="progressTasks">0</div>
+                    <div class="stat-label">In Progress</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value stat-completed" id="completedTasks">0</div>
+                    <div class="stat-label">Completed</div>
+                </div>
+            </div>
+
+            <!-- Task Manager -->
+            <section class="task-manager" id="taskBoard" aria-label="Task management board">
+                <!-- To Do Column -->
+                <div class="task-column" data-status="todo" role="region" aria-label="To do tasks">
+                    <div class="column-header">
+                        <h2 class="column-title">
+                            <i class="fas fa-circle" style="color: var(--warning);" aria-hidden="true"></i>
+                            To Do
+                        </h2>
+                        <div class="column-count" id="todoCount" aria-label="Number of to do tasks">0</div>
+                    </div>
+                    <div class="task-list" id="todoList" role="list" aria-label="To do task list">
+                        <!-- Tasks will be dynamically added here -->
+                    </div>
+                </div>
+
+                <!-- In Progress Column -->
+                <div class="task-column" data-status="progress" role="region" aria-label="In progress tasks">
+                    <div class="column-header">
+                        <h2 class="column-title">
+                            <i class="fas fa-circle" style="color: var(--primary);" aria-hidden="true"></i>
+                            In Progress
+                        </h2>
+                        <div class="column-count" id="progressCount" aria-label="Number of in progress tasks">0</div>
+                    </div>
+                    <div class="task-list" id="progressList" role="list" aria-label="In progress task list">
+                        <!-- Tasks will be dynamically added here -->
+                    </div>
+                </div>
+
+                <!-- Completed Column -->
+                <div class="task-column" data-status="completed" role="region" aria-label="Completed tasks">
+                    <div class="column-header">
+                        <h2 class="column-title">
+                            <i class="fas fa-circle" style="color: var(--success);" aria-hidden="true"></i>
+                            Completed
+                        </h2>
+                        <div class="column-count" id="completedCount" aria-label="Number of completed tasks">0</div>
+                    </div>
+                    <div class="task-list" id="completedList" role="list" aria-label="Completed task list">
+                        <!-- Tasks will be dynamically added here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Calendar View -->
+            <section class="calendar-view" id="calendarView" style="display: none;" aria-label="Calendar view">
+                <div class="calendar-controls">
+                    <div class="calendar-navigation">
+                        <button class="btn btn-secondary" id="prevMonth" aria-label="Previous month">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <h3 class="current-month" id="currentMonth">November 2023</h3>
+                        <button class="btn btn-secondary" id="nextMonth" aria-label="Next month">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <div class="calendar-actions">
+                        <select class="form-select" id="calendarView" aria-label="Calendar view type">
+                            <option value="month">Month</option>
+                            <option value="week">Week</option>
+                            <option value="day">Day</option>
+                        </select>
+                        <button class="btn btn-primary" id="todayBtn">Today</button>
+                    </div>
+                </div>
+                
+                <div class="calendar-grid">
+                    <div class="calendar-header">
+                        <div class="day-header">Sun</div>
+                        <div class="day-header">Mon</div>
+                        <div class="day-header">Tue</div>
+                        <div class="day-header">Wed</div>
+                        <div class="day-header">Thu</div>
+                        <div class="day-header">Fri</div>
+                        <div class="day-header">Sat</div>
+                    </div>
+                    <div class="calendar-body" id="calendarGrid">
+                        <!-- Calendar days will be generated here -->
+                    </div>
+                </div>
+                
+                <div class="calendar-sidebar">
+                    <div class="upcoming-tasks">
+                        <h4>Upcoming Tasks</h4>
+                        <div class="upcoming-list" id="upcomingTasks">
+                            <!-- Upcoming tasks will be listed here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Analytics View -->
+            <section class="analytics-view" id="analyticsView" style="display: none;" aria-label="Analytics dashboard">
+                <div class="analytics-grid">
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <h3>Task Completion Trends</h3>
+                            <select class="form-select" id="chartPeriod">
+                                <option value="week">This Week</option>
+                                <option value="month">This Month</option>
+                                <option value="year">This Year</option>
+                            </select>
+                        </div>
+                        <div class="chart" id="completionChart">
+                            <canvas id="completionCanvas" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="productivity-stats">
+                        <h3>Productivity Metrics</h3>
+                        <div class="metrics-grid">
+                            <div class="metric-card">
+                                <div class="metric-value" id="avgCompletionTime">2.3 days</div>
+                                <div class="metric-label">Avg Completion Time</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-value" id="completionRate">87%</div>
+                                <div class="metric-label">Completion Rate</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-value" id="activeStreak">12 days</div>
+                                <div class="metric-label">Current Streak</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="category-breakdown">
+                        <h3>Tasks by Category</h3>
+                        <div class="category-chart" id="categoryChart">
+                            <div class="category-item">
+                                <span class="category-color" style="background: var(--primary);"></span>
+                                <span class="category-name">Work</span>
+                                <span class="category-count">45%</span>
+                            </div>
+                            <div class="category-item">
+                                <span class="category-color" style="background: var(--secondary);"></span>
+                                <span class="category-name">Personal</span>
+                                <span class="category-count">30%</span>
+                            </div>
+                            <div class="category-item">
+                                <span class="category-color" style="background: var(--accent);"></span>
+                                <span class="category-name">Shopping</span>
+                                <span class="category-count">15%</span>
+                            </div>
+                            <div class="category-item">
+                                <span class="category-color" style="background: var(--success);"></span>
+                                <span class="category-name">Health</span>
+                                <span class="category-count">10%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Search View -->
+            <section class="search-view" id="searchView" style="display: none;" aria-label="Search tasks">
+                <div class="search-container">
+                    <div class="search-header">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="searchInput" placeholder="Search tasks, descriptions, categories..." />
+                            <button class="btn btn-primary" id="searchBtn">Search</button>
+                        </div>
+                    </div>
+                    
+                    <div class="search-filters">
+                        <div class="filter-group">
+                            <label>Status:</label>
+                            <select id="statusFilter" class="form-select">
+                                <option value="">All Status</option>
+                                <option value="todo">To Do</option>
+                                <option value="progress">In Progress</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Priority:</label>
+                            <select id="priorityFilter" class="form-select">
+                                <option value="">All Priorities</option>
+                                <option value="high">High</option>
+                                <option value="medium">Medium</option>
+                                <option value="low">Low</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Category:</label>
+                            <select id="categoryFilter" class="form-select">
+                                <option value="">All Categories</option>
+                                <option value="work">Work</option>
+                                <option value="personal">Personal</option>
+                                <option value="shopping">Shopping</option>
+                                <option value="health">Health</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-secondary" id="clearFilters">Clear Filters</button>
+                    </div>
+                    
+                    <div class="search-results">
+                        <div class="results-header">
+                            <h4 id="resultsCount">0 tasks found</h4>
+                            <div class="sort-options">
+                                <select id="sortBy" class="form-select">
+                                    <option value="relevance">Sort by Relevance</option>
+                                    <option value="date">Date Created</option>
+                                    <option value="dueDate">Due Date</option>
+                                    <option value="priority">Priority</option>
+                                    <option value="title">Title</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="results-list" id="searchResults">
+                            <!-- Search results will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Add/Edit Task Modal -->
+    <div class="modal" id="taskModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalDescription">
+        <div class="modal-content" role="document">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Add New Task</h2>
+                <button class="close-btn" id="closeModal" aria-label="Close modal">
+                    <i class="fas fa-times" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="sr-only" id="modalDescription">Fill out the form below to add or edit a task</div>
+            
+            <form id="taskForm">
+                <div class="form-group">
+                    <label class="form-label" for="taskTitle">Task Title</label>
+                    <input type="text" id="taskTitle" name="taskTitle" class="form-input" placeholder="Enter task title" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="taskDescription">Description</label>
+                    <textarea id="taskDescription" name="taskDescription" class="form-input form-textarea" placeholder="Enter task description"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="taskPriority">Priority</label>
+                    <select id="taskPriority" name="taskPriority" class="form-select" aria-label="Select task priority">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="taskCategory">Category</label>
+                    <select id="taskCategory" name="taskCategory" class="form-select" aria-label="Select task category">
+                        <option value="work">Work</option>
+                        <option value="personal">Personal</option>
+                        <option value="shopping">Shopping</option>
+                        <option value="health">Health</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="taskDueDate">Due Date</label>
+                    <input type="date" id="taskDueDate" name="taskDueDate" class="form-input" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="taskDueTime">Due Time</label>
+                    <input type="time" id="taskDueTime" name="taskDueTime" class="form-input" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="taskFiles">Attachments</label>
+                    <input type="file" id="taskFiles" name="taskFiles" class="form-input" multiple accept="image/*,.pdf,.doc,.docx,.txt">
+                    <div class="file-preview" id="filePreview"></div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelTask">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveTask">Save Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginModalTitle">
+        <div class="modal-content" role="document">
+            <div class="modal-header">
+                <h2 class="modal-title" id="loginModalTitle">Login to TaskFlow</h2>
+                <button class="close-btn" id="closeLoginModal" aria-label="Close login modal">
+                    <i class="fas fa-times" aria-hidden="true"></i>
+                </button>
+            </div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label class="form-label" for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" class="form-input" placeholder="Enter your email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" class="form-input" placeholder="Enter your password" required>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="showRegisterModal">Register</button>
+                    <button type="submit" class="btn btn-primary" id="submitLogin">Login</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div class="modal" id="registerModal" role="dialog" aria-modal="true" aria-labelledby="registerModalTitle">
+        <div class="modal-content" role="document">
+            <div class="modal-header">
+                <h2 class="modal-title" id="registerModalTitle">Register for TaskFlow</h2>
+                <button class="close-btn" id="closeRegisterModal" aria-label="Close register modal">
+                    <i class="fas fa-times" aria-hidden="true"></i>
+                </button>
+            </div>
+            
+            <form id="registerForm">
+                <div class="form-group">
+                    <label class="form-label" for="registerName">Name</label>
+                    <input type="text" id="registerName" class="form-input" placeholder="Enter your full name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="registerEmail">Email</label>
+                    <input type="email" id="registerEmail" class="form-input" placeholder="Enter your email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="registerPassword">Password</label>
+                    <input type="password" id="registerPassword" class="form-input" placeholder="Enter your password" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="confirmPassword">Confirm Password</label>
+                    <input type="password" id="confirmPassword" class="form-input" placeholder="Confirm your password" required>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="showLoginModal">Login</button>
+                    <button type="submit" class="btn btn-primary" id="submitRegister">Register</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div class="modal" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
+        <div class="modal-content" role="document">
+            <div class="modal-header">
+                <h2 class="modal-title" id="profileModalTitle">User Profile</h2>
+                <button class="close-btn" id="closeProfileModal" aria-label="Close profile modal">
+                    <i class="fas fa-times" aria-hidden="true"></i>
+                </button>
+            </div>
+            
+            <div class="profile-info">
+                <div class="form-group">
+                    <label class="form-label">Name</label>
+                    <div class="profile-value" id="profileName">Not logged in</div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <div class="profile-value" id="profileEmail">Not logged in</div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Tasks Completed</label>
+                    <div class="profile-value" id="profileTasksCompleted">0</div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Member Since</label>
+                    <div class="profile-value" id="profileMemberSince">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer"></div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

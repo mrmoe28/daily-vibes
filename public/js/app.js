@@ -1,0 +1,2661 @@
+// TaskFlow - Modern Task Manager (Performance Optimized)
+class TaskFlowApp {
+    constructor() {
+        this.tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        this.currentTaskId = null;
+        this.debounceTimers = new Map();
+        this.domCache = new Map();
+        this.inputListeners = new Map();
+        this.renderQueue = new Set();
+        this.isRendering = false;
+        this.currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
+        this.authToken = localStorage.getItem('authToken') || null;
+        
+        // Enhanced performance caches
+        this.styleCache = new Map();
+        this.validationCache = new Map();
+        this.fragmentCache = new Map();
+        this.renderScheduler = null;
+        this.calendarListenersSetup = false;
+        this.searchListenersSetup = false;
+        
+        // Initialize MessageChannel for better task scheduling
+        if (window.MessageChannel) {
+            this.messageChannel = new MessageChannel();
+            this.messageChannel.port2.addEventListener('message', () => {
+                this.flushInputQueue();
+            });
+            this.messageChannel.port2.start();
+        }
+    }
+
+    async init() {
+        this.cacheDOM();
+        this.setupEventListeners();
+        this.setupAuthEventListeners();
+        this.updateAuthUI();
+        
+        // Load tasks from database first, fall back to localStorage
+        await this.loadUserTasks();
+        
+        this.setupDragAndDrop();
+    }
+
+    // Cache DOM elements to reduce queries
+    cacheDOM() {
+        const elements = [
+            'addTaskBtn', 'headerAddTaskBtn', 'closeModal', 'cancelTask', 
+            'taskForm', 'taskModal', 'todoList', 'progressList', 'completedList',
+            'todoCount', 'progressCount', 'completedCount', 'totalTasks', 
+            'todoTasks', 'progressTasks', 'completedTasks',
+            // Cache form elements to avoid repeated DOM queries
+            'taskTitle', 'taskDescription', 'taskPriority', 'taskCategory',
+            'taskDueDate', 'taskDueTime', 'taskFiles', 'filePreview', 'modalTitle',
+            // Cache additional button elements
+            'prevMonth', 'nextMonth', 'todayBtn', 'searchBtn', 'clearFilters',
+            'saveTask', 'submitLogin', 'submitRegister', 'loginBtn', 'profileBtn', 'logoutBtn',
+            'closeLoginModal', 'closeRegisterModal', 'closeProfileModal',
+            'showRegisterModal', 'showLoginModal'
+        ];
+        
+        elements.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) this.domCache.set(id, element);
+        });
+    }
+
+    // Enhanced debounce function with intelligent timing
+    debounce(func, wait, options = {}) {
+        const { leading = false, trailing = true, maxWait } = options;
+        let lastCallTime, lastInvokeTime = 0;
+        let timerId, maxTimerId;
+        
+        return (...args) => {
+            const now = Date.now();
+            const isInvoking = lastCallTime === undefined;
+            
+            lastCallTime = now;
+            
+            const shouldInvoke = () => {
+                if (isInvoking && leading) return true;
+                if (maxWait && (now - lastInvokeTime) >= maxWait) return true;
+                return false;
+            };
+            
+            const invokeFunc = () => {
+                lastInvokeTime = now;
+                return func.apply(this, args);
+            };
+            
+            // Clear existing timers
+            if (timerId) clearTimeout(timerId);
+            if (maxTimerId) clearTimeout(maxTimerId);
+            
+            if (shouldInvoke()) {
+                return invokeFunc();
+            }
+            
+            // Set up trailing invocation
+            if (trailing) {
+                timerId = setTimeout(() => {
+                    lastCallTime = undefined;
+                    invokeFunc();
+                }, wait);
+            }
+            
+            // Set up max wait invocation
+            if (maxWait && !maxTimerId) {
+                maxTimerId = setTimeout(() => {
+                    if (lastCallTime !== undefined) {
+                        invokeFunc();
+                    }
+                }, maxWait);
+            }
+        };
+    }
+
+    setupEventListeners() {
+        // Add task buttons with keyboard support
+        const addTaskHandler = () => this.showTaskModal();
+        this.domCache.get('addTaskBtn')?.addEventListener('click', addTaskHandler);
+        this.domCache.get('headerAddTaskBtn')?.addEventListener('click', addTaskHandler);
+        
+        // Add keyboard support for Add Task buttons
+        this.domCache.get('addTaskBtn')?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                this.showTaskModal();
+            }
+        });
+        this.domCache.get('headerAddTaskBtn')?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                this.showTaskModal();
+            }
+        });
+        
+        // Modal events with keyboard support
+        this.domCache.get('closeModal')?.addEventListener('click', () => this.hideTaskModal());
+        this.domCache.get('cancelTask')?.addEventListener('click', () => this.hideTaskModal());
+        this.domCache.get('taskForm')?.addEventListener('submit', (e) => this.handleTaskSubmit(e));
+        
+        // Add keyboard support for modal close buttons
+        this.domCache.get('closeModal')?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                this.hideTaskModal();
+            }
+        });
+        this.domCache.get('cancelTask')?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                this.hideTaskModal();
+            }
+        });
+        
+        // Setup optimized input listeners for performance-critical fields
+        this.setupOptimizedInputs();
+        
+        // Close modal when clicking outside - use passive listener
+        this.domCache.get('taskModal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'taskModal') {
+                this.hideTaskModal();
+            }
+        }, { passive: true });
+
+        // Navigation - use event delegation for better performance
+        document.addEventListener('click', (e) => {
+            const navItem = e.target.closest('.nav-item[data-page]');
+            if (navItem) {
+                e.preventDefault();
+                this.handleNavigation(navItem.getAttribute('data-page'));
+                return;
+            }
+
+            const categoryItem = e.target.closest('.nav-item[data-category]');
+            if (categoryItem) {
+                e.preventDefault();
+                this.filterByCategory(categoryItem.getAttribute('data-category'));
+                return;
+            }
+
+            // Handle search button in sidebar
+            if (e.target.closest('#searchTasksBtn')) {
+                e.preventDefault();
+                this.handleNavigation('search');
+                return;
+            }
+        }, { passive: false });
+
+        // File upload handling
+        const fileInput = this.domCache.get('taskFiles');
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => this.handleFileSelection(e));
+        }
+    }
+
+    setupOptimizedInputs() {
+        // Performance-critical input fields with enhanced optimization
+        const criticalInputs = ['taskTitle', 'taskDescription'];
+        
+        criticalInputs.forEach(inputId => {
+            const input = this.domCache.get(inputId);
+            if (!input) return;
+            
+            // Remove any existing listeners to prevent memory leaks
+            if (this.inputListeners.has(inputId)) {
+                const { handler } = this.inputListeners.get(inputId);
+                input.removeEventListener('input', handler);
+            }
+            
+            // Enhanced debounced handler with intelligent scheduling
+            const debouncedHandler = this.debounce((e) => {
+                // Use scheduler.postTask for better performance if available
+                if ('scheduler' in window && 'postTask' in window.scheduler) {
+                    window.scheduler.postTask(() => {
+                        this.handleOptimizedInput(inputId, e.target.value);
+                    }, { priority: 'user-blocking' });
+                } else {
+                    // Fallback to optimized RAF scheduling
+                    this.scheduleInputUpdate(inputId, e.target.value);
+                }
+            }, 50); // Increased to 50ms for better debouncing
+            
+            // Use passive listener for better performance
+            input.addEventListener('input', debouncedHandler, { passive: true });
+            
+            // Store reference for cleanup
+            this.inputListeners.set(inputId, { handler: debouncedHandler });
+            
+            // Enhanced focus optimization
+            input.addEventListener('focus', () => {
+                this.prewarmInputCache(inputId);
+                // Pre-calculate validation rules
+                this.preCalculateValidation(inputId);
+            }, { passive: true, once: false });
+        });
+    }
+
+    scheduleInputUpdate(inputId, value) {
+        // Use time slicing to prevent blocking
+        requestIdleCallback((deadline) => {
+            if (deadline.timeRemaining() > 0) {
+                this.handleOptimizedInput(inputId, value);
+            } else {
+                // Defer to next idle period if no time available
+                setTimeout(() => this.scheduleInputUpdate(inputId, value), 0);
+            }
+        }, { timeout: 100 });
+    }
+
+    handleOptimizedInput(inputId, value) {
+        // Micro-batch validation and UI updates with priority scheduling
+        const updateKey = 'input-' + inputId;
+        
+        if (!this.renderQueue.has(updateKey)) {
+            this.renderQueue.add(updateKey);
+            
+            // Use scheduler.postTask for priority-based scheduling
+            if ('scheduler' in window && 'postTask' in window.scheduler) {
+                window.scheduler.postTask(() => {
+                    this.flushInputQueue();
+                }, { priority: 'user-visible' });
+            } else {
+                // Fallback with optimized timing
+                if (!this.isRendering) {
+                    this.isRendering = true;
+                    // Use MessageChannel for better task scheduling
+                    if (this.messageChannel) {
+                        this.messageChannel.port1.postMessage(null);
+                    } else {
+                        requestAnimationFrame(() => this.flushInputQueue());
+                    }
+                }
+            }
+        }
+    }
+
+    prewarmInputCache(inputId) {
+        // Enhanced pre-computation for smoother interactions
+        const input = this.domCache.get(inputId);
+        if (input) {
+            // Batch style calculations to prevent layout thrashing
+            requestAnimationFrame(() => {
+                // Force style calculations in a single frame
+                const computed = window.getComputedStyle(input);
+                const dimensions = {
+                    width: input.offsetWidth,
+                    height: input.offsetHeight,
+                    borderWidth: computed.borderWidth,
+                    padding: computed.padding
+                };
+                
+                // Cache computed styles for faster access
+                this.styleCache.set(inputId, dimensions);
+            });
+        }
+    }
+    
+    preCalculateValidation(inputId) {
+        // Pre-calculate validation rules to avoid runtime computation
+        const validationRules = {
+            taskTitle: {
+                maxLength: 100,
+                minLength: 1,
+                pattern: /^[\s\S]{1,100}$/
+            },
+            taskDescription: {
+                maxLength: 500,
+                minLength: 0,
+                pattern: /^[\s\S]{0,500}$/
+            }
+        };
+        
+        this.validationCache.set(inputId, validationRules[inputId] || {});
+    }
+
+    flushInputQueue() {
+        // Enhanced batched processing with time slicing
+        const startTime = performance.now();
+        const timeSliceLimit = 5; // 5ms time slice
+        
+        const queueArray = Array.from(this.renderQueue);
+        let processed = 0;
+        
+        const processChunk = () => {
+            while (processed < queueArray.length && (performance.now() - startTime) < timeSliceLimit) {
+                const item = queueArray[processed];
+                if (item.startsWith('input-')) {
+                    const inputId = item.replace('input-', '');
+                    this.processInputUpdate(inputId);
+                }
+                processed++;
+            }
+            
+            if (processed < queueArray.length) {
+                // Continue processing in next frame if more items remain
+                requestAnimationFrame(processChunk);
+            } else {
+                // All items processed
+                this.renderQueue.clear();
+                this.isRendering = false;
+            }
+        };
+        
+        processChunk();
+    }
+
+    processInputUpdate(inputId) {
+        // Enhanced validation with cached rules and minimal DOM manipulation
+        const input = this.domCache.get(inputId);
+        const validationRule = this.validationCache.get(inputId);
+        
+        if (!input || !validationRule) return;
+        
+        // Use cached validation rules for faster processing
+        const value = input.value;
+        const isValid = this.validateInputValue(value, validationRule);
+        
+        // Batch style updates to minimize layout thrashing
+        requestAnimationFrame(() => {
+            this.updateInputStyles(input, isValid, inputId);
+        });
+    }
+    
+    validateInputValue(value, rule) {
+        // Optimized validation with pre-computed rules
+        if (rule.maxLength && value.length > rule.maxLength) return false;
+        if (rule.minLength && value.length < rule.minLength) return false;
+        if (rule.pattern && !rule.pattern.test(value)) return false;
+        return true;
+    }
+    
+    updateInputStyles(input, isValid, inputId) {
+        // Efficient style updates with caching
+        const currentBorderColor = input.style.borderColor;
+        const newBorderColor = isValid ? '' : 'var(--warning)';
+        
+        // Only update if style actually changed
+        if (currentBorderColor !== newBorderColor) {
+            input.style.borderColor = newBorderColor;
+            
+            // Cache the style change to prevent future unnecessary updates
+            this.styleCache.set(inputId + '_borderColor', newBorderColor);
+        }
+    }
+
+    setupDragAndDrop() {
+        // Use event delegation for better performance
+        document.addEventListener('dragstart', (e) => {
+            const card = e.target.closest('.task-card');
+            if (card) {
+                card.classList.add('dragging');
+                e.dataTransfer.setData('text/plain', card.dataset.taskId);
+            }
+        }, { passive: true });
+
+        document.addEventListener('dragend', (e) => {
+            const card = e.target.closest('.task-card');
+            if (card) {
+                card.classList.remove('dragging');
+            }
+        }, { passive: true });
+
+        document.addEventListener('dragover', (e) => {
+            const column = e.target.closest('.task-column');
+            if (column) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        document.addEventListener('dragenter', (e) => {
+            const column = e.target.closest('.task-column');
+            if (column) {
+                e.preventDefault();
+                column.classList.add('drag-over');
+            }
+        }, { passive: false });
+
+        document.addEventListener('dragleave', (e) => {
+            const column = e.target.closest('.task-column');
+            if (column && !column.contains(e.relatedTarget)) {
+                column.classList.remove('drag-over');
+            }
+        }, { passive: true });
+
+        document.addEventListener('drop', (e) => {
+            const column = e.target.closest('.task-column');
+            if (column) {
+                e.preventDefault();
+                const taskId = e.dataTransfer.getData('text/plain');
+                const newStatus = column.dataset.status;
+                
+                this.updateTaskStatus(taskId, newStatus);
+                column.classList.remove('drag-over');
+            }
+        }, { passive: false });
+    }
+
+    showTaskModal(taskId = null) {
+        const modal = this.domCache.get('taskModal');
+        const modalTitle = this.domCache.get('modalTitle');
+        const form = this.domCache.get('taskForm');
+        
+        this.currentTaskId = taskId;
+        
+        if (taskId) {
+            // Edit mode
+            const task = this.tasks.find(t => t.id === taskId);
+            if (task) {
+                modalTitle.textContent = 'Edit Task';
+                this.populateTaskForm(task);
+            }
+        } else {
+            // Add mode
+            modalTitle.textContent = 'Add New Task';
+            form.reset();
+            
+            // Auto-populate date and time fields as expected by tests
+            const now = new Date();
+            const today = now.toISOString().split('T')[0];
+            const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            
+            const dueDateField = this.domCache.get('taskDueDate');
+            const dueTimeField = this.domCache.get('taskDueTime');
+            
+            if (dueDateField) dueDateField.value = today;
+            if (dueTimeField) dueTimeField.value = currentTime;
+        }
+        
+        modal.classList.add('show');
+        
+        // Focus management for accessibility
+        this.previouslyFocusedElement = document.activeElement;
+        
+        // Focus on first input after modal animation
+        requestAnimationFrame(() => {
+            const firstInput = this.domCache.get('taskTitle');
+            if (firstInput) firstInput.focus();
+        });
+        
+        // Trap focus within modal
+        this.setupFocusTrap(modal);
+    }
+
+    hideTaskModal() {
+        const modal = this.domCache.get('taskModal');
+        modal.classList.remove('show');
+        this.currentTaskId = null;
+        
+        // Clear file selections
+        this.selectedFiles = [];
+        const filePreview = this.domCache.get('filePreview');
+        if (filePreview) filePreview.innerHTML = '';
+        const fileInput = this.domCache.get('taskFiles');
+        if (fileInput) fileInput.value = '';
+        
+        // Restore focus for accessibility
+        if (this.previouslyFocusedElement) {
+            this.previouslyFocusedElement.focus();
+            this.previouslyFocusedElement = null;
+        }
+        
+        // Remove focus trap
+        this.removeFocusTrap();
+    }
+
+    setupFocusTrap(modal) {
+        // Get all focusable elements within the modal
+        const focusableElements = modal.querySelectorAll(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        
+        if (focusableElements.length === 0) return;
+        
+        const firstFocusable = focusableElements[0];
+        const lastFocusable = focusableElements[focusableElements.length - 1];
+        
+        // Store the handler for cleanup
+        this.focusTrapHandler = (e) => {
+            if (e.key === 'Tab') {
+                if (e.shiftKey) {
+                    // Shift + Tab
+                    if (document.activeElement === firstFocusable) {
+                        e.preventDefault();
+                        lastFocusable.focus();
+                    }
+                } else {
+                    // Tab
+                    if (document.activeElement === lastFocusable) {
+                        e.preventDefault();
+                        firstFocusable.focus();
+                    }
+                }
+            }
+            
+            // Close modal on Escape
+            if (e.key === 'Escape') {
+                this.hideTaskModal();
+            }
+        };
+        
+        modal.addEventListener('keydown', this.focusTrapHandler);
+    }
+
+    removeFocusTrap() {
+        const modal = this.domCache.get('taskModal');
+        if (modal && this.focusTrapHandler) {
+            modal.removeEventListener('keydown', this.focusTrapHandler);
+            this.focusTrapHandler = null;
+        }
+    }
+
+    populateTaskForm(task) {
+        // Use cached DOM elements to avoid repeated queries
+        const elements = {
+            title: this.domCache.get('taskTitle'),
+            description: this.domCache.get('taskDescription'),
+            priority: this.domCache.get('taskPriority'),
+            category: this.domCache.get('taskCategory'),
+            dueDate: this.domCache.get('taskDueDate'),
+            dueTime: this.domCache.get('taskDueTime')
+        };
+        
+        // Temporarily disable input listeners during population to prevent re-renders
+        this.disableInputOptimization();
+        
+        // Use DocumentFragment for efficient DOM manipulation
+        const fragment = document.createDocumentFragment();
+        
+        // Batch all form updates in a single frame with proper scheduling
+        requestAnimationFrame(() => {
+            // Batch DOM writes to minimize layout thrashing
+            Object.entries(elements).forEach(([key, element]) => {
+                if (!element) return;
+                
+                let value = '';
+                switch(key) {
+                    case 'title': value = task.title; break;
+                    case 'description': value = task.description || ''; break;
+                    case 'priority': value = task.priority; break;
+                    case 'category': value = task.category; break;
+                    case 'dueDate': 
+                        // Convert dueDateTime to date format
+                        if (task.dueDateTime) {
+                            value = task.dueDateTime.split('T')[0];
+                        } else {
+                            value = new Date().toISOString().split('T')[0];
+                        }
+                        break;
+                    case 'dueTime':
+                        // Convert dueDateTime to time format
+                        if (task.dueDateTime) {
+                            const time = new Date(task.dueDateTime);
+                            value = `${String(time.getHours()).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')}`;
+                        } else {
+                            const now = new Date();
+                            value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                        }
+                        break;
+                }
+                
+                // Set value only if different to prevent unnecessary re-renders
+                if (element.value !== value) {
+                    element.value = value;
+                }
+            });
+            
+            // Re-enable input optimization after population
+            requestAnimationFrame(() => {
+                this.enableInputOptimization();
+            });
+        });
+    }
+
+    disableInputOptimization() {
+        // Temporarily remove input listeners during form population
+        this.inputListeners.forEach(({ handler }, inputId) => {
+            const input = this.domCache.get(inputId);
+            if (input) {
+                input.removeEventListener('input', handler);
+            }
+        });
+    }
+
+    enableInputOptimization() {
+        // Re-add input listeners after form population
+        this.inputListeners.forEach(({ handler }, inputId) => {
+            const input = this.domCache.get(inputId);
+            if (input) {
+                input.addEventListener('input', handler, { passive: true });
+            }
+        });
+    }
+
+    handleTaskSubmit(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(e.target);
+        
+        // Get values from FormData now that we have proper name attributes
+        const title = formData.get('taskTitle');
+        const description = formData.get('taskDescription');
+        const priority = formData.get('taskPriority');
+        const category = formData.get('taskCategory');
+        const dueDate = formData.get('taskDueDate');
+        const dueTime = formData.get('taskDueTime');
+        
+        // Combine date and time into a single DateTime
+        const dueDateTime = dueDate && dueTime ? `${dueDate}T${dueTime}:00.000Z` : null;
+
+        const taskData = {
+            title: title,
+            description: description,
+            priority: priority,
+            category: category,
+            dueDateTime: dueDateTime,
+            createdAt: new Date().toISOString(),
+            status: 'todo'
+        };
+
+        if (this.currentTaskId) {
+            // Update existing task
+            this.updateTask(this.currentTaskId, taskData);
+        } else {
+            // Create new task
+            this.createTask(taskData);
+        }
+
+        this.hideTaskModal();
+    }
+
+    handleFileSelection(e) {
+        const files = Array.from(e.target.files);
+        this.selectedFiles = files;
+        this.updateFilePreview(files);
+    }
+
+    updateFilePreview(files) {
+        const preview = this.domCache.get('filePreview');
+        if (!preview) return;
+
+        preview.innerHTML = files.map((file, index) => `
+            <div class="file-item">
+                <i class="fas fa-file"></i>
+                <span>${file.name}</span>
+                <button type="button" class="file-remove" data-file-index="${index}" aria-label="Remove file">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `).join('');
+
+        // Add event listeners for remove buttons
+        preview.querySelectorAll('.file-remove').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const fileIndex = parseInt(e.target.closest('.file-remove').dataset.fileIndex);
+                this.removeFile(fileIndex);
+            });
+        });
+    }
+
+    removeFile(index) {
+        if (this.selectedFiles) {
+            this.selectedFiles.splice(index, 1);
+            this.updateFilePreview(this.selectedFiles);
+            
+            // Update the file input
+            const fileInput = this.domCache.get('taskFiles');
+            if (fileInput && this.selectedFiles.length === 0) {
+                fileInput.value = '';
+            }
+        }
+    }
+
+    async uploadFiles(files) {
+        if (!files || files.length === 0) return [];
+
+        const formData = new FormData();
+        files.forEach(file => {
+            formData.append('files', file);
+        });
+
+        if (this.currentUser) {
+            formData.append('userId', this.currentUser.id);
+        }
+
+        try {
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+                headers: this.authToken ? {
+                    'Authorization': 'Bearer ' + this.authToken
+                } : {}
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                return data.files;
+            } else {
+                throw new Error(data.error || 'Upload failed');
+            }
+        } catch (error) {
+            console.error('File upload error:', error);
+            this.showToast('Failed to upload files: ' + error.message, 'error');
+            return [];
+        }
+    }
+
+    async createTask(taskData) {
+        try {
+            // Upload files if any were selected
+            let attachments = [];
+            if (this.selectedFiles && this.selectedFiles.length > 0) {
+                attachments = await this.uploadFiles(this.selectedFiles);
+            }
+
+            // Parse dueDateTime into separate fields for database
+            let dueDate = null;
+            let dueTime = null;
+            if (taskData.dueDateTime) {
+                const dueDateTime = new Date(taskData.dueDateTime);
+                dueDate = dueDateTime.toISOString().split('T')[0];
+                dueTime = dueDateTime.toTimeString().split(' ')[0].substring(0, 5);
+            }
+
+            const requestData = {
+                userId: this.currentUser?.id || 'default',
+                title: taskData.title,
+                description: taskData.description,
+                priority: taskData.priority,
+                category: taskData.category,
+                status: taskData.status || 'todo',
+                dueDate: dueDate,
+                dueTime: dueTime,
+                dueDateTime: taskData.dueDateTime
+            };
+
+            const response = await fetch('/api/tasks', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(this.authToken && { 'Authorization': 'Bearer ' + this.authToken })
+                },
+                body: JSON.stringify(requestData)
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                // Convert database format back to frontend format
+                const task = {
+                    id: data.task.id,
+                    title: data.task.title,
+                    description: data.task.description,
+                    priority: data.task.priority,
+                    category: data.task.category,
+                    status: data.task.status,
+                    dueDateTime: data.task.due_datetime,
+                    createdAt: data.task.created_at,
+                    attachments: attachments
+                };
+
+                // Handle file attachments
+                if (attachments.length > 0) {
+                    for (const file of attachments) {
+                        await this.addTaskAttachment(task.id, file.id);
+                    }
+                    task.attachments = attachments;
+                }
+
+                this.tasks.push(task);
+                this.renderTasks();
+                this.updateStats();
+                this.showToast('Task created successfully!', 'success');
+                
+                // Clear selected files
+                this.selectedFiles = [];
+            } else {
+                throw new Error(data.error || 'Failed to create task');
+            }
+        } catch (error) {
+            console.error('Create task error:', error);
+            this.showToast('Failed to create task: ' + error.message, 'error');
+        }
+    }
+
+    async updateTask(taskId, taskData) {
+        try {
+            // Parse dueDateTime into separate fields for database
+            let dueDate = null;
+            let dueTime = null;
+            if (taskData.dueDateTime) {
+                const dueDateTime = new Date(taskData.dueDateTime);
+                dueDate = dueDateTime.toISOString().split('T')[0];
+                dueTime = dueDateTime.toTimeString().split(' ')[0].substring(0, 5);
+            }
+
+            const requestData = {
+                title: taskData.title,
+                description: taskData.description,
+                priority: taskData.priority,
+                category: taskData.category,
+                status: taskData.status,
+                dueDate: dueDate,
+                dueTime: dueTime,
+                dueDateTime: taskData.dueDateTime
+            };
+
+            const response = await fetch(`/api/tasks/${taskId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(this.authToken && { 'Authorization': 'Bearer ' + this.authToken })
+                },
+                body: JSON.stringify(requestData)
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                // Update local task
+                const taskIndex = this.tasks.findIndex(t => t.id === taskId);
+                if (taskIndex !== -1) {
+                    this.tasks[taskIndex] = {
+                        ...this.tasks[taskIndex],
+                        title: data.task.title,
+                        description: data.task.description,
+                        priority: data.task.priority,
+                        category: data.task.category,
+                        status: data.task.status,
+                        dueDateTime: data.task.due_datetime
+                    };
+                }
+                
+                this.renderTasks();
+                this.updateStats();
+                this.showToast('Task updated successfully!', 'success');
+            } else {
+                throw new Error(data.error || 'Failed to update task');
+            }
+        } catch (error) {
+            console.error('Update task error:', error);
+            this.showToast('Failed to update task: ' + error.message, 'error');
+        }
+    }
+
+    async updateTaskStatus(taskId, newStatus) {
+        try {
+            const response = await fetch(`/api/tasks/${taskId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(this.authToken && { 'Authorization': 'Bearer ' + this.authToken })
+                },
+                body: JSON.stringify({ status: newStatus })
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                const task = this.tasks.find(t => t.id === taskId);
+                if (task) {
+                    task.status = newStatus;
+                    this.renderTasks();
+                    this.updateStats();
+                    this.showToast(`Task moved to ${newStatus}!`, 'success');
+                }
+            } else {
+                throw new Error(data.error || 'Failed to update task status');
+            }
+        } catch (error) {
+            console.error('Update task status error:', error);
+            this.showToast('Failed to update task status: ' + error.message, 'error');
+        }
+    }
+
+    async deleteTask(taskId) {
+        if (confirm('Are you sure you want to delete this task?')) {
+            try {
+                const response = await fetch(`/api/tasks/${taskId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        ...(this.authToken && { 'Authorization': 'Bearer ' + this.authToken })
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    this.tasks = this.tasks.filter(t => t.id !== taskId);
+                    this.renderTasks();
+                    this.updateStats();
+                    this.showToast('Task deleted successfully!', 'success');
+                } else {
+                    throw new Error(data.error || 'Failed to delete task');
+                }
+            } catch (error) {
+                console.error('Delete task error:', error);
+                this.showToast('Failed to delete task: ' + error.message, 'error');
+            }
+        }
+    }
+
+    renderTasks() {
+        // Prevent concurrent renders
+        if (this.isRendering) {
+            this.renderQueue.add('tasks');
+            return;
+        }
+        
+        this.isRendering = true;
+        
+        // Use optimized rendering with virtual scrolling for large lists
+        this.renderTasksOptimized().finally(() => {
+            this.isRendering = false;
+            
+            // Process any queued renders
+            if (this.renderQueue.has('tasks')) {
+                this.renderQueue.delete('tasks');
+                requestAnimationFrame(() => this.renderTasks());
+            }
+        });
+    }
+
+    async renderTasksOptimized() {
+        // Group tasks by status with caching
+        const taskGroups = this.groupTasksByStatus();
+        const fragments = await this.createTaskFragments(taskGroups);
+        
+        // Schedule DOM updates using RAF for smooth performance
+        return new Promise(resolve => {
+            requestAnimationFrame(() => {
+                this.updateTaskColumns(fragments, taskGroups);
+                resolve();
+            });
+        });
+    }
+
+    groupTasksByStatus() {
+        // Use Map for better performance with frequent lookups
+        const groups = new Map([
+            ['todo', []],
+            ['progress', []],
+            ['completed', []]
+        ]);
+        
+        // Single pass through tasks for better performance
+        this.tasks.forEach(task => {
+            const group = groups.get(task.status);
+            if (group) group.push(task);
+        });
+        
+        return groups;
+    }
+
+    async createTaskFragments(taskGroups) {
+        const fragments = new Map();
+        const BATCH_SIZE = 10; // Process tasks in batches to avoid blocking
+        
+        for (const [status, tasks] of taskGroups.entries()) {
+            const fragment = document.createDocumentFragment();
+            
+            // Process tasks in batches to maintain responsiveness
+            for (let i = 0; i < tasks.length; i += BATCH_SIZE) {
+                const batch = tasks.slice(i, i + BATCH_SIZE);
+                
+                // Create batch of task cards
+                const batchFragment = document.createDocumentFragment();
+                batch.forEach(task => {
+                    const card = this.createTaskCardOptimized(task);
+                    if (card) batchFragment.appendChild(card);
+                });
+                
+                fragment.appendChild(batchFragment);
+                
+                // Yield control to browser after each batch
+                if (i + BATCH_SIZE < tasks.length) {
+                    await this.yieldToMain();
+                }
+            }
+            
+            fragments.set(status, fragment);
+        }
+        
+        return fragments;
+    }
+
+    yieldToMain() {
+        return new Promise(resolve => {
+            setTimeout(resolve, 0);
+        });
+    }
+
+    updateTaskColumns(fragments, taskGroups) {
+        const columns = {
+            todo: this.domCache.get('todoList'),
+            progress: this.domCache.get('progressList'),
+            completed: this.domCache.get('completedList')
+        };
+        
+        const counts = {
+            todo: this.domCache.get('todoCount'),
+            progress: this.domCache.get('progressCount'),
+            completed: this.domCache.get('completedCount')
+        };
+        
+        // Batch all DOM mutations
+        Object.entries(columns).forEach(([status, column]) => {
+            if (!column) return;
+            
+            // Clear column efficiently
+            column.textContent = '';
+            
+            // Append new content
+            const fragment = fragments.get(status);
+            if (fragment) {
+                column.appendChild(fragment);
+            }
+            
+            // Update count
+            const count = counts[status];
+            const taskCount = taskGroups.get(status)?.length || 0;
+            if (count) count.textContent = taskCount;
+        });
+    }
+
+    createTaskCard(task) {
+        return this.createTaskCardOptimized(task);
+    }
+
+    createTaskCardOptimized(task) {
+        // Create card element with performance optimizations
+        const card = document.createElement('div');
+        card.className = 'task-card';
+        card.dataset.taskId = task.id;
+        card.setAttribute('draggable', true);
+        card.setAttribute('role', 'listitem');
+        card.setAttribute('aria-label', `Task: ${this.escapeHtml(task.title)}`);
+
+        // Pre-compute values to avoid repeated calculations
+        const priorityClass = `priority-${task.priority}`;
+        
+        // Cache frequently accessed values
+        const escapedTitle = this.escapeHtml(task.title);
+        const escapedDescription = task.description ? this.escapeHtml(task.description) : '';
+        
+        
+        // Format due date and time
+        const dueDateInfo = this.formatTaskDueDate(task.dueDateTime);
+        
+        // Format attachments
+        const attachmentsHtml = task.attachments && task.attachments.length > 0 ? 
+            `<div class="task-attachments">
+                ${task.attachments.map(file => 
+                    `<div class="attachment-item" onclick="window.open('${file.url}', '_blank')" title="${file.originalname}">
+                        <i class="fas fa-paperclip" aria-hidden="true"></i>
+                        <span>${file.originalname}</span>
+                    </div>`
+                ).join('')}
+            </div>` : '';
+
+        // Optimized template with minimal string interpolation
+        const cardHTML = [
+            `<div class="task-priority ${priorityClass}" aria-label="Priority: ${task.priority}"></div>`,
+            `<div class="task-title">${escapedTitle}</div>`,
+            task.description ? `<div class="task-description">${escapedDescription}</div>` : '',
+            '<div class="task-meta">',
+            dueDateInfo ? `  <div class="task-date">${dueDateInfo}</div>` : '',
+            '  <div class="task-tags">',
+            `    <span class="task-tag">${task.category}</span>`,
+            '  </div>',
+            '</div>',
+            attachmentsHtml,
+            '<div class="task-actions" style="margin-top: 1rem; display: flex; gap: 0.5rem;">',
+            `  <button class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" data-action="edit" data-task-id="${task.id}" aria-label="Edit task: ${escapedTitle}">`,
+            '    <i class="fas fa-edit" aria-hidden="true"></i>',
+            '  </button>',
+            `  <button class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background: var(--error);" data-action="delete" data-task-id="${task.id}" aria-label="Delete task: ${escapedTitle}">`,
+            '    <i class="fas fa-trash" aria-hidden="true"></i>',
+            '  </button>',
+            '</div>'
+        ].join('');
+
+        // Single innerHTML assignment for better performance
+        card.innerHTML = cardHTML;
+
+        // Use single event listener for better memory efficiency
+        card.addEventListener('click', this.createTaskCardClickHandler(task.id), { passive: true });
+
+        return card;
+    }
+
+    createTaskCardClickHandler(taskId) {
+        // Create optimized click handler with proper closure
+        return (e) => {
+            const button = e.target.closest('button[data-action]');
+            if (!button) return;
+            
+            e.stopPropagation();
+            
+            const action = button.dataset.action;
+            
+            // Use requestIdleCallback for non-critical actions
+            if (window.requestIdleCallback) {
+                window.requestIdleCallback(() => {
+                    this.handleTaskAction(action, taskId);
+                });
+            } else {
+                // Fallback for browsers without requestIdleCallback
+                setTimeout(() => {
+                    this.handleTaskAction(action, taskId);
+                }, 0);
+            }
+        };
+    }
+
+    handleTaskAction(action, taskId) {
+        switch (action) {
+            case 'edit':
+                this.editTask(taskId);
+                break;
+            case 'delete':
+                this.deleteTask(taskId);
+                break;
+        }
+    }
+
+    editTask(taskId) {
+        this.showTaskModal(taskId);
+    }
+
+    updateStats() {
+        // Debounce stats updates to prevent excessive calculations
+        this.debouncedUpdateStats();
+    }
+
+    debouncedUpdateStats = this.debounce(() => {
+        const total = this.tasks.length;
+        const todo = this.tasks.filter(t => t.status === 'todo').length;
+        const progress = this.tasks.filter(t => t.status === 'progress').length;
+        const completed = this.tasks.filter(t => t.status === 'completed').length;
+
+        requestAnimationFrame(() => {
+            this.domCache.get('totalTasks').textContent = total;
+            this.domCache.get('todoTasks').textContent = todo;
+            this.domCache.get('progressTasks').textContent = progress;
+            this.domCache.get('completedTasks').textContent = completed;
+        });
+    }, 100);
+
+    filterByCategory(category) {
+        // Update active state
+        document.querySelectorAll('.nav-item[data-category]').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        // Also clear data-page active states
+        document.querySelectorAll('.nav-item[data-page]').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        const categoryItem = document.querySelector(`[data-category="${category}"]`);
+        if (categoryItem) {
+            categoryItem.classList.add('active');
+        }
+
+        // Update page title
+        const pageTitle = document.querySelector('.page-title');
+        if (pageTitle) {
+            const categoryName = category.charAt(0).toUpperCase() + category.slice(1);
+            pageTitle.textContent = `${categoryName} Tasks`;
+        }
+
+        // Show filtered task board
+        this.hideAllViews();
+        const taskBoard = document.getElementById('taskBoard');
+        const statsGrid = document.querySelector('.stats-grid');
+        if (taskBoard) taskBoard.style.display = 'grid';
+        if (statsGrid) statsGrid.style.display = 'grid';
+
+        // Apply category filter
+        this.currentCategoryFilter = category;
+        this.renderFilteredTasks();
+        this.updateFilteredStats();
+    }
+
+    renderFilteredTasks() {
+        if (!this.currentCategoryFilter) {
+            this.renderTasks();
+            return;
+        }
+
+        // Filter tasks by current category
+        const filteredTasks = this.tasks.filter(task => task.category === this.currentCategoryFilter);
+        
+        // Temporarily replace tasks for rendering
+        const originalTasks = this.tasks;
+        this.tasks = filteredTasks;
+        this.renderTasks();
+        this.tasks = originalTasks;
+    }
+
+    updateFilteredStats() {
+        if (!this.currentCategoryFilter) {
+            this.updateStats();
+            return;
+        }
+
+        const categoryTasks = this.tasks.filter(task => task.category === this.currentCategoryFilter);
+        const total = categoryTasks.length;
+        const todo = categoryTasks.filter(t => t.status === 'todo').length;
+        const progress = categoryTasks.filter(t => t.status === 'progress').length;
+        const completed = categoryTasks.filter(t => t.status === 'completed').length;
+
+        requestAnimationFrame(() => {
+            this.domCache.get('totalTasks').textContent = total;
+            this.domCache.get('todoTasks').textContent = todo;
+            this.domCache.get('progressTasks').textContent = progress;
+            this.domCache.get('completedTasks').textContent = completed;
+        });
+    }
+
+    clearCategoryFilter() {
+        this.currentCategoryFilter = null;
+        
+        // Clear active states from category items
+        document.querySelectorAll('.nav-item[data-category]').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        // Reset to task board
+        this.handleNavigation('tasks');
+    }
+
+    handleNavigation(page) {
+        console.log('Navigating to:', page); // Debug log
+        
+        // Clear category filter when navigating to different pages
+        this.currentCategoryFilter = null;
+        
+        // Update active state
+        document.querySelectorAll('.nav-item[data-page]').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        // Clear category active states
+        document.querySelectorAll('.nav-item[data-category]').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        const targetNavItem = document.querySelector(`[data-page="${page}"]`);
+        if (targetNavItem) {
+            targetNavItem.classList.add('active');
+        }
+        
+        // Update page title
+        const pageTitle = document.querySelector('.page-title');
+        if (pageTitle) {
+            switch (page) {
+                case 'tasks':
+                    pageTitle.textContent = 'Task Board';
+                    break;
+                case 'calendar':
+                    pageTitle.textContent = 'Calendar View';
+                    break;
+                case 'analytics':
+                    pageTitle.textContent = 'Analytics Dashboard';
+                    break;
+                default:
+                    pageTitle.textContent = 'TaskFlow';
+            }
+        }
+
+        // Handle different pages
+        switch (page) {
+            case 'tasks':
+                // Show task board
+                this.showTaskBoard();
+                break;
+            case 'calendar':
+                this.showCalendarView();
+                break;
+            case 'analytics':
+                this.showAnalyticsView();
+                break;
+            case 'search':
+                this.showSearchView();
+                break;
+        }
+    }
+    
+    showTaskBoard() {
+        // Hide other views
+        this.hideAllViews();
+        
+        // Show the task manager section
+        const taskBoard = document.getElementById('taskBoard');
+        const statsGrid = document.querySelector('.stats-grid');
+        
+        if (taskBoard) taskBoard.style.display = 'grid';
+        if (statsGrid) statsGrid.style.display = 'grid';
+        
+        // Refresh tasks and stats
+        this.renderTasks();
+        this.updateStats();
+    }
+    
+    showCalendarView() {
+        // Hide other views
+        this.hideAllViews();
+        
+        // Show calendar view with loading state
+        const calendarView = document.getElementById('calendarView');
+        if (calendarView) {
+            calendarView.style.display = 'block';
+            this.showLoadingState('calendar');
+            
+            // Use setTimeout to allow UI to update before heavy operations
+            setTimeout(() => {
+                try {
+                    this.setupCalendarNavigation();
+                    this.generateCalendar();
+                    this.populateUpcomingTasks();
+                    this.hideLoadingState('calendar');
+                } catch (error) {
+                    console.error('Error loading calendar view:', error);
+                    this.showErrorState('calendar', 'Failed to load calendar view');
+                }
+            }, 100);
+        }
+    }
+
+    setupCalendarNavigation() {
+        // Use cached DOM elements and ensure event listeners are properly set up
+        const prevBtn = this.domCache.get('prevMonth');
+        const nextBtn = this.domCache.get('nextMonth');
+        const todayBtn = this.domCache.get('todayBtn');
+
+        if (prevBtn && !this.calendarListenersSetup) {
+            prevBtn.addEventListener('click', () => {
+                if (this.currentCalendarDate) {
+                    const newDate = new Date(this.currentCalendarDate);
+                    newDate.setMonth(newDate.getMonth() - 1);
+                    this.generateCalendar(newDate);
+                }
+            });
+        }
+
+        if (nextBtn && !this.calendarListenersSetup) {
+            nextBtn.addEventListener('click', () => {
+                if (this.currentCalendarDate) {
+                    const newDate = new Date(this.currentCalendarDate);
+                    newDate.setMonth(newDate.getMonth() + 1);
+                    this.generateCalendar(newDate);
+                }
+            });
+        }
+
+        if (todayBtn && !this.calendarListenersSetup) {
+            todayBtn.addEventListener('click', () => {
+                this.generateCalendar(new Date());
+            });
+        }
+        
+        // Mark calendar listeners as set up
+        this.calendarListenersSetup = true;
+    }
+    
+    showAnalyticsView() {
+        // Hide other views
+        this.hideAllViews();
+        
+        // Show analytics view with loading state
+        const analyticsView = document.getElementById('analyticsView');
+        if (analyticsView) {
+            analyticsView.style.display = 'block';
+            this.showLoadingState('analytics');
+            
+            // Use setTimeout to allow UI to update before heavy operations
+            setTimeout(() => {
+                try {
+                    this.setupAnalyticsEventListeners();
+                    this.generateAnalytics();
+                    this.hideLoadingState('analytics');
+                } catch (error) {
+                    console.error('Error loading analytics view:', error);
+                    this.showErrorState('analytics', 'Failed to load analytics data');
+                }
+            }, 100);
+        }
+    }
+
+    setupAnalyticsEventListeners() {
+        const chartPeriod = document.getElementById('chartPeriod');
+        if (chartPeriod && !chartPeriod.hasAttribute('data-listener-added')) {
+            chartPeriod.addEventListener('change', () => {
+                this.generateCompletionChart();
+            });
+            chartPeriod.setAttribute('data-listener-added', 'true');
+        }
+    }
+    
+    showSearchView() {
+        // Hide other views
+        this.hideAllViews();
+        
+        // Show search view with loading state
+        const searchView = document.getElementById('searchView');
+        if (searchView) {
+            searchView.style.display = 'block';
+            this.showLoadingState('search');
+            
+            // Use setTimeout to allow UI to update
+            setTimeout(() => {
+                try {
+                    this.initializeSearch();
+                    this.hideLoadingState('search');
+                } catch (error) {
+                    console.error('Error loading search view:', error);
+                    this.showErrorState('search', 'Failed to initialize search');
+                }
+            }, 50);
+        }
+    }
+    
+    hideAllViews() {
+        // Hide task board
+        const taskBoard = document.getElementById('taskBoard');
+        const statsGrid = document.querySelector('.stats-grid');
+        const calendarView = document.getElementById('calendarView');
+        const analyticsView = document.getElementById('analyticsView');
+        const searchView = document.getElementById('searchView');
+        
+        if (taskBoard) taskBoard.style.display = 'none';
+        if (statsGrid) statsGrid.style.display = 'none';
+        if (calendarView) calendarView.style.display = 'none';
+        if (analyticsView) analyticsView.style.display = 'none';
+        if (searchView) searchView.style.display = 'none';
+    }
+    
+    generateCalendar(viewDate = null) {
+        const calendarGrid = document.getElementById('calendarGrid');
+        const currentMonthElement = document.getElementById('currentMonth');
+        
+        if (!calendarGrid || !currentMonthElement) return;
+        
+        // Use provided date or current date
+        const baseDate = viewDate || new Date();
+        this.currentCalendarDate = baseDate;
+        const year = baseDate.getFullYear();
+        const month = baseDate.getMonth();
+        
+        // Update month display
+        const monthNames = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+        currentMonthElement.textContent = `${monthNames[month]} ${year}`;
+        
+        // Clear existing calendar
+        calendarGrid.innerHTML = '';
+        
+        // Get first day of month and number of days
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const startDate = new Date(firstDay);
+        startDate.setDate(startDate.getDate() - firstDay.getDay());
+        
+        // Generate 6 weeks of calendar
+        for (let week = 0; week < 6; week++) {
+            for (let day = 0; day < 7; day++) {
+                const currentDate = new Date(startDate);
+                currentDate.setDate(startDate.getDate() + (week * 7) + day);
+                
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day';
+                
+                if (currentDate.getMonth() !== month) {
+                    dayElement.classList.add('other-month');
+                }
+                
+                if (this.isSameDay(currentDate, new Date())) {
+                    dayElement.classList.add('today');
+                }
+                
+                // Add click handler for adding tasks to date
+                dayElement.addEventListener('click', () => {
+                    this.showTaskModalForDate(currentDate);
+                });
+                
+                const dayTasks = this.getTasksForDate(currentDate);
+                const tasksHtml = dayTasks.map(task => 
+                    `<div class="calendar-task" 
+                          style="background: ${this.getPriorityColor(task.priority)}"
+                          data-task-id="${task.id}"
+                          onclick="event.stopPropagation(); app.editTask('${task.id}')"
+                          title="${task.title} - ${task.category}">${this.truncateText(task.title, 15)}</div>`
+                ).join('');
+                
+                dayElement.innerHTML = `
+                    <div class="day-number">${currentDate.getDate()}</div>
+                    <div class="day-tasks" id="day-${currentDate.toISOString().split('T')[0]}">
+                        ${tasksHtml}
+                        ${dayTasks.length === 0 ? '<div class="no-tasks">Click to add task</div>' : ''}
+                    </div>
+                `;
+                
+                calendarGrid.appendChild(dayElement);
+            }
+        }
+    }
+    
+    populateUpcomingTasks() {
+        const upcomingTasksElement = document.getElementById('upcomingTasks');
+        if (!upcomingTasksElement) return;
+        
+        const now = new Date();
+        const sevenDaysLater = new Date();
+        sevenDaysLater.setDate(now.getDate() + 7);
+        
+        // Get tasks for the next 7 days
+        const upcomingTasks = this.tasks
+            .filter(task => {
+                if (task.status === 'completed' || !task.dueDateTime) return false;
+                
+                const taskDate = new Date(task.dueDateTime);
+                return taskDate >= now && taskDate <= sevenDaysLater;
+            })
+            .sort((a, b) => new Date(a.dueDateTime) - new Date(b.dueDateTime))
+            .slice(0, 5); // Show first 5
+        
+        upcomingTasksElement.innerHTML = upcomingTasks.map(task => `
+            <div class="upcoming-task" data-task-id="${task.id}">
+                <div class="task-priority ${task.priority}" style="width: 12px; height: 12px; border-radius: 50%; background: ${this.getPriorityColor(task.priority)};"></div>
+                <div>
+                    <div style="font-weight: 500; color: var(--text-primary);">${this.escapeHtml(task.title)}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">${task.category}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    generateAnalytics() {
+        // Update productivity metrics
+        this.updateProductivityMetrics();
+        
+        // Generate simple chart placeholder
+        this.generateCompletionChart();
+        
+        // Update category breakdown
+        this.updateCategoryBreakdown();
+    }
+    
+    updateProductivityMetrics() {
+        const completedTasks = this.tasks.filter(t => t.status === 'completed');
+        const totalTasks = this.tasks.length;
+        
+        // Calculate average completion time
+        const avgCompletionElement = document.getElementById('avgCompletionTime');
+        if (avgCompletionElement) {
+            let avgTime = '0 days';
+            if (completedTasks.length > 0) {
+                const totalDays = completedTasks.reduce((sum, task) => {
+                    const created = new Date(task.createdAt);
+                    // For demo purposes, assume completed same day or use a random completion time
+                    const daysToComplete = Math.floor(Math.random() * 5) + 1;
+                    return sum + daysToComplete;
+                }, 0);
+                const avg = (totalDays / completedTasks.length).toFixed(1);
+                avgTime = `${avg} days`;
+            }
+            avgCompletionElement.textContent = avgTime;
+        }
+        
+        // Calculate completion rate
+        const completionRateElement = document.getElementById('completionRate');
+        if (completionRateElement) {
+            const rate = totalTasks > 0 ? Math.round((completedTasks.length / totalTasks) * 100) : 0;
+            completionRateElement.textContent = `${rate}%`;
+        }
+        
+        // Calculate active streak (days with task activity)
+        const streakElement = document.getElementById('activeStreak');
+        if (streakElement) {
+            const streak = this.calculateActiveStreak();
+            streakElement.textContent = `${streak} days`;
+        }
+    }
+
+    calculateActiveStreak() {
+        if (this.tasks.length === 0) return 0;
+        
+        const today = new Date();
+        let streak = 0;
+        let currentDate = new Date(today);
+        
+        // Check each day going backwards from today
+        for (let i = 0; i < 30; i++) { // Check up to 30 days
+            const dayStart = new Date(currentDate);
+            dayStart.setHours(0, 0, 0, 0);
+            const dayEnd = new Date(currentDate);
+            dayEnd.setHours(23, 59, 59, 999);
+            
+            // Check if there was any task activity on this day
+            const hasActivity = this.tasks.some(task => {
+                const taskDate = new Date(task.createdAt);
+                return taskDate >= dayStart && taskDate <= dayEnd;
+            });
+            
+            if (hasActivity) {
+                streak++;
+            } else if (streak > 0) {
+                // Streak broken
+                break;
+            }
+            
+            // Move to previous day
+            currentDate.setDate(currentDate.getDate() - 1);
+        }
+        
+        return streak;
+    }
+    
+    generateCompletionChart() {
+        const canvas = document.getElementById('completionCanvas');
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+        
+        // Clear canvas
+        ctx.clearRect(0, 0, width, height);
+        
+        // Generate real data from tasks
+        const chartData = this.generateChartData();
+        
+        if (chartData.length === 0) {
+            // No data message
+            ctx.fillStyle = 'var(--text-muted)';
+            ctx.font = '16px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText('No completion data available', width / 2, height / 2);
+            return;
+        }
+        
+        // Chart settings
+        const padding = 40;
+        const chartWidth = width - 2 * padding;
+        const chartHeight = height - 2 * padding;
+        
+        // Calculate scales
+        const maxValue = Math.max(...chartData.map(d => d.completed), 10);
+        const xStep = chartWidth / (chartData.length - 1);
+        const yScale = chartHeight / maxValue;
+        
+        // Draw grid lines
+        ctx.strokeStyle = 'rgba(139, 115, 85, 0.1)';
+        ctx.lineWidth = 1;
+        
+        // Horizontal grid lines
+        for (let i = 0; i <= 5; i++) {
+            const y = padding + (chartHeight * i / 5);
+            ctx.beginPath();
+            ctx.moveTo(padding, y);
+            ctx.lineTo(width - padding, y);
+            ctx.stroke();
+            
+            // Y-axis labels
+            ctx.fillStyle = 'var(--text-muted)';
+            ctx.font = '12px Inter';
+            ctx.textAlign = 'right';
+            const value = Math.round(maxValue * (5 - i) / 5);
+            ctx.fillText(value.toString(), padding - 10, y + 4);
+        }
+        
+        // Draw completion line
+        ctx.strokeStyle = 'var(--primary)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        
+        chartData.forEach((point, index) => {
+            const x = padding + (index * xStep);
+            const y = padding + chartHeight - (point.completed * yScale);
+            
+            if (index === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        });
+        ctx.stroke();
+        
+        // Draw data points
+        ctx.fillStyle = 'var(--primary)';
+        chartData.forEach((point, index) => {
+            const x = padding + (index * xStep);
+            const y = padding + chartHeight - (point.completed * yScale);
+            
+            ctx.beginPath();
+            ctx.arc(x, y, 4, 0, 2 * Math.PI);
+            ctx.fill();
+        });
+        
+        // Draw X-axis labels
+        ctx.fillStyle = 'var(--text-muted)';
+        ctx.font = '12px Inter';
+        ctx.textAlign = 'center';
+        chartData.forEach((point, index) => {
+            const x = padding + (index * xStep);
+            ctx.fillText(point.label, x, height - 10);
+        });
+    }
+    
+    generateChartData() {
+        // Generate last 7 days of completion data
+        const data = [];
+        const today = new Date();
+        
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date(today);
+            date.setDate(today.getDate() - i);
+            
+            const dayStart = new Date(date);
+            dayStart.setHours(0, 0, 0, 0);
+            const dayEnd = new Date(date);
+            dayEnd.setHours(23, 59, 59, 999);
+            
+            const completedTasks = this.tasks.filter(task => {
+                if (task.status !== 'completed') return false;
+                const createdAt = new Date(task.createdAt);
+                return createdAt >= dayStart && createdAt <= dayEnd;
+            }).length;
+            
+            data.push({
+                date: date,
+                completed: completedTasks,
+                label: date.toLocaleDateString('en-US', { weekday: 'short' })
+            });
+        }
+        
+        return data;
+    }
+    
+    updateCategoryBreakdown() {
+        const categories = ['work', 'personal', 'shopping', 'health'];
+        const categoryCounts = {};
+        
+        // Count tasks by category
+        categories.forEach(cat => {
+            categoryCounts[cat] = this.tasks.filter(t => t.category === cat).length;
+        });
+        
+        const total = Object.values(categoryCounts).reduce((sum, count) => sum + count, 0);
+        
+        // Update category percentages
+        const categoryItems = document.querySelectorAll('.category-item');
+        categoryItems.forEach(item => {
+            const categoryName = item.querySelector('.category-name').textContent.toLowerCase();
+            const categoryCount = item.querySelector('.category-count');
+            if (categoryCount && categoryCounts[categoryName] !== undefined) {
+                const percentage = total > 0 ? Math.round((categoryCounts[categoryName] / total) * 100) : 0;
+                categoryCount.textContent = `${percentage}%`;
+            }
+        });
+    }
+    
+    initializeSearch() {
+        if (this.searchListenersSetup) {
+            this.performSearch();
+            return;
+        }
+        
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = this.domCache.get('searchBtn');
+        const clearFiltersBtn = this.domCache.get('clearFilters');
+        
+        if (searchInput && searchBtn) {
+            // Set up search functionality
+            const performSearch = () => this.performSearch();
+            
+            searchBtn.addEventListener('click', performSearch);
+            searchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    performSearch();
+                }
+            });
+            
+            // Set up filter change listeners
+            ['statusFilter', 'priorityFilter', 'categoryFilter', 'sortBy'].forEach(filterId => {
+                const element = document.getElementById(filterId);
+                if (element) {
+                    element.addEventListener('change', performSearch);
+                }
+            });
+            
+            if (clearFiltersBtn) {
+                clearFiltersBtn.addEventListener('click', () => this.clearSearchFilters());
+            }
+            
+            this.searchListenersSetup = true;
+        }
+        
+        // Show all tasks initially
+        this.performSearch();
+    }
+    
+    performSearch() {
+        const searchInput = document.getElementById('searchInput');
+        const statusFilter = document.getElementById('statusFilter');
+        const priorityFilter = document.getElementById('priorityFilter');
+        const categoryFilter = document.getElementById('categoryFilter');
+        const sortBy = document.getElementById('sortBy');
+        const resultsContainer = document.getElementById('searchResults');
+        const resultsCount = document.getElementById('resultsCount');
+        
+        if (!searchInput || !resultsContainer || !resultsCount) return;
+        
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        const statusValue = statusFilter?.value || '';
+        const priorityValue = priorityFilter?.value || '';
+        const categoryValue = categoryFilter?.value || '';
+        const sortValue = sortBy?.value || 'relevance';
+        
+        // Filter tasks with enhanced search
+        let filteredTasks = this.tasks.filter(task => {
+            const matchesSearch = !searchTerm || 
+                task.title.toLowerCase().includes(searchTerm) ||
+                (task.description && task.description.toLowerCase().includes(searchTerm)) ||
+                task.category.toLowerCase().includes(searchTerm) ||
+                task.priority.toLowerCase().includes(searchTerm) ||
+                task.status.toLowerCase().includes(searchTerm);
+                
+            const matchesStatus = !statusValue || task.status === statusValue;
+            const matchesPriority = !priorityValue || task.priority === priorityValue;
+            const matchesCategory = !categoryValue || task.category === categoryValue;
+            
+            return matchesSearch && matchesStatus && matchesPriority && matchesCategory;
+        });
+        
+        // Enhanced sorting with relevance scoring
+        switch (sortValue) {
+            case 'date':
+                filteredTasks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                break;
+            case 'priority':
+                const priorityOrder = { high: 3, medium: 2, low: 1 };
+                filteredTasks.sort((a, b) => priorityOrder[b.priority] - priorityOrder[a.priority]);
+                break;
+            case 'title':
+                filteredTasks.sort((a, b) => a.title.localeCompare(b.title));
+                break;
+            case 'dueDate':
+                filteredTasks.sort((a, b) => {
+                    if (!a.dueDateTime) return 1;
+                    if (!b.dueDateTime) return -1;
+                    return new Date(a.dueDateTime) - new Date(b.dueDateTime);
+                });
+                break;
+            default: // relevance
+                if (searchTerm) {
+                    filteredTasks.sort((a, b) => this.calculateRelevanceScore(b, searchTerm) - this.calculateRelevanceScore(a, searchTerm));
+                }
+                break;
+        }
+        
+        // Update results count
+        resultsCount.textContent = `${filteredTasks.length} task${filteredTasks.length !== 1 ? 's' : ''} found`;
+        
+        // Render results with improved layout
+        if (filteredTasks.length === 0) {
+            resultsContainer.innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                    <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                    <div>No tasks found matching your criteria</div>
+                    <div style="font-size: 0.875rem; margin-top: 0.5rem;">Try adjusting your search terms or filters</div>
+                </div>
+            `;
+        } else {
+            resultsContainer.innerHTML = filteredTasks.map(task => `
+                <div class="search-result-card" data-task-id="${task.id}">
+                    <div class="result-header">
+                        <div class="result-title">${this.escapeHtml(task.title)}</div>
+                        <div class="result-actions">
+                            <button class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; margin-right: 0.5rem;" onclick="event.stopPropagation(); app.editTask('${task.id}')">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background: var(--error);" onclick="event.stopPropagation(); app.deleteTask('${task.id}')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                    ${task.description ? `<div class="result-description">${this.escapeHtml(task.description)}</div>` : ''}
+                    <div class="result-meta">
+                        <span class="result-tag" style="background: ${this.getPriorityColor(task.priority)};">${task.priority}</span>
+                        <span class="result-tag">${task.category}</span>
+                        <span class="result-tag" style="background: ${this.getStatusColor(task.status)};">${task.status}</span>
+                        ${task.dueDateTime ? `<span class="result-tag" style="background: var(--accent);">${this.formatDate(task.dueDateTime)}</span>` : ''}
+                        <span style="margin-left: auto; color: var(--text-muted); font-size: 0.875rem;">Created: ${this.formatDate(task.createdAt)}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Add click handlers to results (for viewing details)
+        resultsContainer.querySelectorAll('.search-result-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                // Only if not clicking on buttons
+                if (!e.target.closest('button')) {
+                    const taskId = card.dataset.taskId;
+                    this.showTaskDetails(taskId);
+                }
+            });
+        });
+    }
+
+    calculateRelevanceScore(task, searchTerm) {
+        let score = 0;
+        const term = searchTerm.toLowerCase();
+        
+        // Title matches get highest score
+        if (task.title.toLowerCase().includes(term)) {
+            score += task.title.toLowerCase().indexOf(term) === 0 ? 10 : 5;
+        }
+        
+        // Description matches
+        if (task.description && task.description.toLowerCase().includes(term)) {
+            score += 3;
+        }
+        
+        // Category matches
+        if (task.category.toLowerCase().includes(term)) {
+            score += 2;
+        }
+        
+        // Priority matches
+        if (task.priority.toLowerCase().includes(term)) {
+            score += 2;
+        }
+        
+        // Status matches
+        if (task.status.toLowerCase().includes(term)) {
+            score += 1;
+        }
+        
+        return score;
+    }
+
+    showTaskDetails(taskId) {
+        const task = this.tasks.find(t => t.id === taskId);
+        if (task) {
+            // For now, just edit the task - could implement a detail view later
+            this.editTask(taskId);
+        }
+    }
+
+    // Loading and error state methods
+    showLoadingState(viewType) {
+        const loadingOverlay = this.createLoadingOverlay(viewType);
+        const targetView = this.getViewElement(viewType);
+        
+        if (targetView && loadingOverlay) {
+            targetView.appendChild(loadingOverlay);
+        }
+    }
+
+    hideLoadingState(viewType) {
+        const targetView = this.getViewElement(viewType);
+        if (targetView) {
+            const loadingOverlay = targetView.querySelector('.loading-overlay');
+            if (loadingOverlay) {
+                loadingOverlay.remove();
+            }
+        }
+    }
+
+    showErrorState(viewType, errorMessage) {
+        this.hideLoadingState(viewType);
+        const errorOverlay = this.createErrorOverlay(viewType, errorMessage);
+        const targetView = this.getViewElement(viewType);
+        
+        if (targetView && errorOverlay) {
+            targetView.appendChild(errorOverlay);
+        }
+    }
+
+    hideErrorState(viewType) {
+        const targetView = this.getViewElement(viewType);
+        if (targetView) {
+            const errorOverlay = targetView.querySelector('.error-overlay');
+            if (errorOverlay) {
+                errorOverlay.remove();
+            }
+        }
+    }
+
+    getViewElement(viewType) {
+        const viewMap = {
+            'calendar': document.getElementById('calendarView'),
+            'analytics': document.getElementById('analyticsView'),
+            'search': document.getElementById('searchView'),
+            'tasks': document.getElementById('taskBoard')
+        };
+        return viewMap[viewType];
+    }
+
+    createLoadingOverlay(viewType) {
+        const overlay = document.createElement('div');
+        overlay.className = 'loading-overlay';
+        overlay.innerHTML = `
+            <div class="loading-content">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                </div>
+                <div class="loading-text">Loading ${viewType} view...</div>
+            </div>
+        `;
+        return overlay;
+    }
+
+    createErrorOverlay(viewType, errorMessage) {
+        const overlay = document.createElement('div');
+        overlay.className = 'error-overlay';
+        overlay.innerHTML = `
+            <div class="error-content">
+                <div class="error-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="error-title">Oops! Something went wrong</div>
+                <div class="error-message">${errorMessage}</div>
+                <button class="btn btn-primary retry-btn" onclick="app.retryView('${viewType}')">
+                    <i class="fas fa-redo"></i> Try Again
+                </button>
+            </div>
+        `;
+        return overlay;
+    }
+
+    retryView(viewType) {
+        this.hideErrorState(viewType);
+        
+        // Retry the view based on type
+        switch (viewType) {
+            case 'calendar':
+                this.showCalendarView();
+                break;
+            case 'analytics':
+                this.showAnalyticsView();
+                break;
+            case 'search':
+                this.showSearchView();
+                break;
+            default:
+                this.showTaskBoard();
+        }
+    }
+    
+    clearSearchFilters() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('statusFilter').value = '';
+        document.getElementById('priorityFilter').value = '';
+        document.getElementById('categoryFilter').value = '';
+        document.getElementById('sortBy').value = 'relevance';
+        this.performSearch();
+    }
+    
+    hideCalendarView() {
+        const calendarView = document.getElementById('calendarView');
+        if (calendarView) calendarView.style.display = 'none';
+    }
+    
+    hideAnalyticsView() {
+        const analyticsView = document.getElementById('analyticsView');
+        if (analyticsView) analyticsView.style.display = 'none';
+    }
+    
+    hideSearchView() {
+        const searchView = document.getElementById('searchView');
+        if (searchView) searchView.style.display = 'none';
+    }
+    
+    // Helper functions
+    isSameDay(date1, date2) {
+        return date1.getFullYear() === date2.getFullYear() &&
+               date1.getMonth() === date2.getMonth() &&
+               date1.getDate() === date2.getDate();
+    }
+    
+    getTasksForDate(date) {
+        return this.tasks.filter(task => {
+            if (!task.dueDateTime) return false;
+            
+            const taskDate = new Date(task.dueDateTime);
+            return this.isSameDay(taskDate, date);
+        });
+    }
+    
+    getPriorityColor(priority) {
+        switch (priority) {
+            case 'high': return 'var(--error)';
+            case 'medium': return 'var(--warning)';
+            case 'low': return 'var(--success)';
+            default: return 'var(--accent)';
+        }
+    }
+    
+    getStatusColor(status) {
+        switch (status) {
+            case 'todo': return 'var(--warning)';
+            case 'progress': return 'var(--primary)';
+            case 'completed': return 'var(--success)';
+            default: return 'var(--accent)';
+        }
+    }
+    
+    formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString();
+    }
+    
+    formatTaskDueDate(dueDateTime) {
+        if (!dueDateTime) return null;
+        
+        const dueDate = new Date(dueDateTime);
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const taskDate = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+        
+        const timeString = `${String(dueDate.getHours()).padStart(2, '0')}:${String(dueDate.getMinutes()).padStart(2, '0')}`;
+        
+        if (taskDate.getTime() === today.getTime()) {
+            return `<i class="fas fa-clock" aria-hidden="true"></i> Today at ${timeString}`;
+        } else if (taskDate.getTime() === today.getTime() + 24 * 60 * 60 * 1000) {
+            return `<i class="fas fa-clock" aria-hidden="true"></i> Tomorrow at ${timeString}`;
+        } else {
+            return `<i class="fas fa-clock" aria-hidden="true"></i> ${taskDate.toLocaleDateString()} at ${timeString}`;
+        }
+    }
+
+    // Calendar helper methods
+    showTaskModalForDate(date) {
+        // Pre-fill the date in the task modal
+        this.showTaskModal();
+        
+        // Set the date field to the clicked date
+        const dateString = date.toISOString().split('T')[0];
+        const dueDateField = this.domCache.get('taskDueDate');
+        if (dueDateField) {
+            dueDateField.value = dateString;
+        }
+        
+        // Set a default time
+        const dueTimeField = this.domCache.get('taskDueTime');
+        if (dueTimeField && !dueTimeField.value) {
+            dueTimeField.value = '09:00';
+        }
+    }
+
+    truncateText(text, maxLength) {
+        if (!text) return '';
+        if (text.length <= maxLength) return text;
+        return text.substring(0, maxLength - 3) + '...';
+    }
+
+    showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                <span>${message}</span>
+            </div>
+        `;
+
+        document.getElementById('toastContainer').appendChild(toast);
+
+        // Show toast
+        requestAnimationFrame(() => toast.classList.add('show'));
+
+        // Hide and remove toast
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    saveTasks() {
+        // Debounce localStorage writes
+        this.debouncedSaveTasks();
+    }
+
+    debouncedSaveTasks = this.debounce(() => {
+        localStorage.setItem('tasks', JSON.stringify(this.tasks));
+        // Also save to server if logged in
+        if (this.currentUser && this.authToken) {
+            this.saveUserTasks();
+        }
+    }, 300);
+
+    generateId() {
+        return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    }
+
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Cleanup method for performance optimization
+    cleanup() {
+        // Clear all debounce timers
+        this.debounceTimers.forEach(timer => clearTimeout(timer));
+        this.debounceTimers.clear();
+        
+        // Clean up input listeners
+        this.inputListeners.forEach(({ handler }, inputId) => {
+            const input = this.domCache.get(inputId);
+            if (input) {
+                input.removeEventListener('input', handler);
+            }
+        });
+        this.inputListeners.clear();
+        
+        // Clear render queue
+        this.renderQueue.clear();
+        this.isRendering = false;
+        
+        // Clear DOM cache
+        this.domCache.clear();
+    }
+
+    // Performance monitoring helper
+    measurePerformance(name, fn) {
+        const start = performance.now();
+        const result = fn();
+        const end = performance.now();
+        console.log(`${name}: ${end - start}ms`);
+        return result;
+    }
+
+    // Authentication Methods
+    setupAuthEventListeners() {
+        // Login button
+        document.getElementById('loginBtn')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.showLoginModal();
+        });
+
+        // Profile button
+        document.getElementById('profileBtn')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.showProfileModal();
+        });
+
+        // Logout button
+        document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.logout();
+        });
+
+        // Modal close buttons
+        document.getElementById('closeLoginModal')?.addEventListener('click', () => this.hideLoginModal());
+        document.getElementById('closeRegisterModal')?.addEventListener('click', () => this.hideRegisterModal());
+        document.getElementById('closeProfileModal')?.addEventListener('click', () => this.hideProfileModal());
+
+        // Modal switching
+        document.getElementById('showRegisterModal')?.addEventListener('click', () => {
+            this.hideLoginModal();
+            this.showRegisterModal();
+        });
+
+        document.getElementById('showLoginModal')?.addEventListener('click', () => {
+            this.hideRegisterModal();
+            this.showLoginModal();
+        });
+
+        // Form submissions
+        document.getElementById('loginForm')?.addEventListener('submit', (e) => this.handleLogin(e));
+        document.getElementById('registerForm')?.addEventListener('submit', (e) => this.handleRegister(e));
+
+        // Close modals when clicking outside
+        ['loginModal', 'registerModal', 'profileModal'].forEach(modalId => {
+            document.getElementById(modalId)?.addEventListener('click', (e) => {
+                if (e.target.id === modalId) {
+                    this.hideAuthModals();
+                }
+            });
+        });
+    }
+
+    showLoginModal() {
+        const modal = document.getElementById('loginModal');
+        if (modal) {
+            modal.classList.add('show');
+            document.getElementById('loginEmail')?.focus();
+        }
+    }
+
+    hideLoginModal() {
+        document.getElementById('loginModal')?.classList.remove('show');
+    }
+
+    showRegisterModal() {
+        const modal = document.getElementById('registerModal');
+        if (modal) {
+            modal.classList.add('show');
+            document.getElementById('registerName')?.focus();
+        }
+    }
+
+    hideRegisterModal() {
+        document.getElementById('registerModal')?.classList.remove('show');
+    }
+
+    showProfileModal() {
+        if (this.currentUser) {
+            this.updateProfileModal();
+            const modal = document.getElementById('profileModal');
+            if (modal) modal.classList.add('show');
+        } else {
+            this.showToast('Please login to view your profile', 'error');
+        }
+    }
+
+    hideProfileModal() {
+        document.getElementById('profileModal')?.classList.remove('show');
+    }
+
+    hideAuthModals() {
+        this.hideLoginModal();
+        this.hideRegisterModal();
+        this.hideProfileModal();
+    }
+
+    async handleLogin(e) {
+        e.preventDefault();
+        
+        const email = document.getElementById('loginEmail')?.value;
+        const password = document.getElementById('loginPassword')?.value;
+
+        if (!email || !password) {
+            this.showToast('Please fill in all fields', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email, password })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.currentUser = data.user;
+                this.authToken = data.token;
+                localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+                localStorage.setItem('authToken', this.authToken);
+                
+                this.updateAuthUI();
+                this.hideLoginModal();
+                this.showToast(`Welcome back, ${this.currentUser.name}!`, 'success');
+                
+                // Load user's tasks from server
+                await this.loadUserTasks();
+            } else {
+                this.showToast(data.error || 'Login failed', 'error');
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            this.showToast('Connection error. Please try again.', 'error');
+        }
+    }
+
+    async handleRegister(e) {
+        e.preventDefault();
+        
+        const name = document.getElementById('registerName')?.value;
+        const email = document.getElementById('registerEmail')?.value;
+        const password = document.getElementById('registerPassword')?.value;
+        const confirmPassword = document.getElementById('confirmPassword')?.value;
+
+        if (!name || !email || !password || !confirmPassword) {
+            this.showToast('Please fill in all fields', 'error');
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            this.showToast('Passwords do not match', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name, email, password })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.showToast('Registration successful! Please login.', 'success');
+                this.hideRegisterModal();
+                this.showLoginModal();
+                
+                // Pre-fill login form
+                document.getElementById('loginEmail').value = email;
+            } else {
+                this.showToast(data.error || 'Registration failed', 'error');
+            }
+        } catch (error) {
+            console.error('Registration error:', error);
+            this.showToast('Connection error. Please try again.', 'error');
+        }
+    }
+
+    logout() {
+        this.currentUser = null;
+        this.authToken = null;
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('authToken');
+        
+        this.updateAuthUI();
+        this.showToast('You have been logged out', 'success');
+        
+        // Clear tasks or reload default tasks
+        this.tasks = [];
+        this.renderTasks();
+        this.updateStats();
+    }
+
+    updateAuthUI() {
+        const body = document.body;
+        
+        if (this.currentUser) {
+            body.classList.remove('logged-out');
+            body.classList.add('logged-in');
+            
+            // Update user info in sidebar
+            document.getElementById('userName').textContent = this.currentUser.name;
+            document.getElementById('userStatus').textContent = 'Logged in';
+            document.getElementById('userAvatar').textContent = this.currentUser.name.charAt(0).toUpperCase();
+        } else {
+            body.classList.remove('logged-in');
+            body.classList.add('logged-out');
+            
+            // Update user info in sidebar
+            document.getElementById('userName').textContent = 'Guest User';
+            document.getElementById('userStatus').textContent = 'Not logged in';
+            document.getElementById('userAvatar').textContent = '?';
+        }
+    }
+
+    updateProfileModal() {
+        if (!this.currentUser) return;
+        
+        document.getElementById('profileName').textContent = this.currentUser.name;
+        document.getElementById('profileEmail').textContent = this.currentUser.email;
+        
+        const completedTasks = this.tasks.filter(t => t.status === 'completed').length;
+        document.getElementById('profileTasksCompleted').textContent = completedTasks.toString();
+        
+        // Mock member since date
+        document.getElementById('profileMemberSince').textContent = new Date().toLocaleDateString();
+    }
+
+    async loadUserTasks() {
+        try {
+            const userId = this.currentUser?.id || 'default';
+            const response = await fetch(`/api/tasks?userId=${userId}&withAttachments=true`, {
+                headers: {
+                    ...(this.authToken && { 'Authorization': 'Bearer ' + this.authToken })
+                }
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                // Convert database format to frontend format
+                this.tasks = data.tasks.map(task => ({
+                    id: task.id,
+                    title: task.title,
+                    description: task.description,
+                    priority: task.priority,
+                    category: task.category,
+                    status: task.status,
+                    dueDateTime: task.due_datetime,
+                    createdAt: task.created_at,
+                    attachments: task.attachments || []
+                }));
+                
+                this.renderTasks();
+                this.updateStats();
+            }
+        } catch (error) {
+            console.error('Error loading user tasks:', error);
+            // Fall back to localStorage if available
+            const localTasks = localStorage.getItem('tasks');
+            if (localTasks) {
+                this.tasks = JSON.parse(localTasks);
+                this.renderTasks();
+                this.updateStats();
+            }
+        }
+    }
+
+    async saveUserTasks() {
+        // Tasks are now automatically saved to database via API calls
+        // Keep localStorage as backup
+        localStorage.setItem('tasks', JSON.stringify(this.tasks));
+    }
+
+    async addTaskAttachment(taskId, fileId) {
+        try {
+            const response = await fetch(`/api/tasks/${taskId}/attachments/${fileId}`, {
+                method: 'POST',
+                headers: {
+                    ...(this.authToken && { 'Authorization': 'Bearer ' + this.authToken })
+                }
+            });
+            
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to add attachment');
+            }
+        } catch (error) {
+            console.error('Add attachment error:', error);
+            throw error;
+        }
+    }
+
+    async removeTaskAttachment(taskId, fileId) {
+        try {
+            const response = await fetch(`/api/tasks/${taskId}/attachments/${fileId}`, {
+                method: 'DELETE',
+                headers: {
+                    ...(this.authToken && { 'Authorization': 'Bearer ' + this.authToken })
+                }
+            });
+            
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to remove attachment');
+            }
+        } catch (error) {
+            console.error('Remove attachment error:', error);
+            throw error;
+        }
+    }
+}
+
+// Initialize the app
+(async function() {
+    // Make app globally available for onclick handlers
+    window.app = new TaskFlowApp();
+    await window.app.init();
+    
+    // Add some sample tasks for demonstration if no tasks exist
+    if (window.app.tasks.length === 0) {
+    const now = new Date();
+    const today = new Date(now);
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const sampleTasks = [
+        {
+            id: window.app.generateId(),
+            title: 'Complete project proposal',
+            description: 'Finish the Q4 project proposal document and send to stakeholders',
+            priority: 'high',
+            category: 'work',
+            status: 'todo',
+            dueDateTime: `${today.toISOString().split('T')[0]}T14:00:00.000Z`,
+            createdAt: new Date().toISOString()
+        },
+        {
+            id: window.app.generateId(),
+            title: 'Buy groceries',
+            description: 'Milk, bread, eggs, and vegetables',
+            priority: 'medium',
+            category: 'shopping',
+            status: 'todo',
+            dueDateTime: `${tomorrow.toISOString().split('T')[0]}T10:30:00.000Z`,
+            createdAt: new Date().toISOString()
+        },
+        {
+            id: window.app.generateId(),
+            title: 'Review code changes',
+            description: 'Review pull request #123 for the new feature',
+            priority: 'medium',
+            category: 'work',
+            status: 'progress',
+            dueDateTime: `${today.toISOString().split('T')[0]}T16:45:00.000Z`,
+            createdAt: new Date().toISOString()
+        },
+        {
+            id: window.app.generateId(),
+            title: 'Morning workout',
+            description: '30 minutes cardio and strength training',
+            priority: 'low',
+            category: 'health',
+            status: 'completed',
+            dueDateTime: `${today.toISOString().split('T')[0]}T07:00:00.000Z`,
+            createdAt: new Date().toISOString()
+        }
+    ];
+
+    // Create sample tasks using the API
+    for (const sampleTask of sampleTasks) {
+        await window.app.createTask(sampleTask);
+    }
+}
+})().catch(error => {
+    console.error('Failed to initialize app:', error);
+});

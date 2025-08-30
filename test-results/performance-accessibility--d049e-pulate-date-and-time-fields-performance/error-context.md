@@ -1,0 +1,116 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e7]: 
+        - generic [ref=e8]: TaskFlow
+      - navigation [ref=e9]:
+        - generic [ref=e10]:
+          - generic [ref=e11]: Overview
+          - link " Task Board" [ref=e12] [cursor=pointer]:
+            - /url: "#"
+            - generic [ref=e13] [cursor=pointer]: 
+            - generic [ref=e14] [cursor=pointer]: Task Board
+          - link " Calendar" [ref=e15] [cursor=pointer]:
+            - /url: "#"
+            - generic [ref=e16] [cursor=pointer]: 
+            - generic [ref=e17] [cursor=pointer]: Calendar
+          - link " Analytics" [ref=e18] [cursor=pointer]:
+            - /url: "#"
+            - generic [ref=e19] [cursor=pointer]: 
+            - generic [ref=e20] [cursor=pointer]: Analytics
+        - generic [ref=e21]:
+          - generic [ref=e22]: Categories
+          - link " Work 12" [ref=e23] [cursor=pointer]:
+            - /url: "#"
+            - generic [ref=e24] [cursor=pointer]: 
+            - generic [ref=e25] [cursor=pointer]: Work
+            - generic [ref=e26] [cursor=pointer]: "12"
+          - link " Personal 8" [ref=e27] [cursor=pointer]:
+            - /url: "#"
+            - generic [ref=e28] [cursor=pointer]: 
+            - generic [ref=e29] [cursor=pointer]: Personal
+            - generic [ref=e30] [cursor=pointer]: "8"
+          - link " Shopping 5" [ref=e31] [cursor=pointer]:
+            - /url: "#"
+            - generic [ref=e32] [cursor=pointer]: 
+            - generic [ref=e33] [cursor=pointer]: Shopping
+            - generic [ref=e34] [cursor=pointer]: "5"
+          - link " Health 3" [ref=e35] [cursor=pointer]:
+            - /url: "#"
+            - generic [ref=e36] [cursor=pointer]: 
+            - generic [ref=e37] [cursor=pointer]: Health
+            - generic [ref=e38] [cursor=pointer]: "3"
+        - generic [ref=e39]:
+          - generic [ref=e40]: Quick Actions
+          - link "+ Add Task" [ref=e41] [cursor=pointer]:
+            - /url: "#"
+            - generic [ref=e42] [cursor=pointer]: +
+            - generic [ref=e43] [cursor=pointer]: Add Task
+          - link " Search" [ref=e44] [cursor=pointer]:
+            - /url: "#"
+            - generic [ref=e45] [cursor=pointer]: 
+            - generic [ref=e46] [cursor=pointer]: Search
+        - generic [ref=e47]:
+          - generic [ref=e48]: Account
+          - link " Profile" [ref=e49] [cursor=pointer]:
+            - /url: "#"
+            - generic [ref=e50] [cursor=pointer]: 
+            - generic [ref=e51] [cursor=pointer]: Profile
+          - link " Login" [ref=e52] [cursor=pointer]:
+            - /url: "#"
+            - generic [ref=e53] [cursor=pointer]: 
+            - generic [ref=e54] [cursor=pointer]: Login
+          - text: 
+      - generic [ref=e56]:
+        - generic [ref=e57]: "?"
+        - generic [ref=e58]:
+          - generic [ref=e59]: Guest User
+          - generic [ref=e60]: Not logged in
+    - main [ref=e61]:
+      - generic [ref=e62]:
+        - heading "Task Board" [level=1] [ref=e63]
+        - button "Add new task" [active] [ref=e65] [cursor=pointer]:
+          - generic [ref=e66] [cursor=pointer]: +
+          - text: Add Task
+      - generic [ref=e67]:
+        - generic [ref=e68]:
+          - generic [ref=e69]: "0"
+          - generic [ref=e70]: Total Tasks
+        - generic [ref=e71]:
+          - generic [ref=e72]: "0"
+          - generic [ref=e73]: To Do
+        - generic [ref=e74]:
+          - generic [ref=e75]: "0"
+          - generic [ref=e76]: In Progress
+        - generic [ref=e77]:
+          - generic [ref=e78]: "0"
+          - generic [ref=e79]: Completed
+      - region "Task management board" [ref=e80]:
+        - region "To do tasks" [ref=e81]:
+          - generic [ref=e82]:
+            - heading "To Do" [level=2] [ref=e83]:
+              - generic [ref=e84]: 
+              - text: To Do
+            - generic "Number of to do tasks" [ref=e85]: "0"
+          - list "To do task list" [ref=e86]
+        - region "In progress tasks" [ref=e87]:
+          - generic [ref=e88]:
+            - heading "In Progress" [level=2] [ref=e89]:
+              - generic [ref=e90]: 
+              - text: In Progress
+            - generic "Number of in progress tasks" [ref=e91]: "0"
+          - list "In progress task list" [ref=e92]
+        - region "Completed tasks" [ref=e93]:
+          - generic [ref=e94]:
+            - heading "Completed" [level=2] [ref=e95]:
+              - generic [ref=e96]: 
+              - text: Completed
+            - generic "Number of completed tasks" [ref=e97]: "0"
+          - list "Completed task list" [ref=e98]
+      - text:   
+  - text:    
+```
