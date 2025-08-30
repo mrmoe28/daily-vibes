@@ -1510,15 +1510,15 @@
             <nav class="sidebar-nav">
                 <div class="nav-section">
                     <div class="nav-section-title">Overview</div>
-                    <a href="#" class="nav-item active" data-page="tasks">
+                    <a href="#" class="nav-item active" data-page="tasks" onclick="window.app && window.app.handleNavigation('tasks'); return false;">
                         <i class="fas fa-columns"></i>
                         <span>Task Board</span>
                     </a>
-                    <a href="#" class="nav-item" data-page="calendar">
+                    <a href="#" class="nav-item" data-page="calendar" onclick="window.app && window.app.handleNavigation('calendar'); return false;">
                         <i class="fas fa-calendar-alt"></i>
                         <span>Calendar</span>
                     </a>
-                    <a href="#" class="nav-item" data-page="analytics">
+                    <a href="#" class="nav-item" data-page="analytics" onclick="window.app && window.app.handleNavigation('analytics'); return false;">
                         <i class="fas fa-chart-bar"></i>
                         <span>Analytics</span>
                     </a>
@@ -1526,22 +1526,22 @@
                 
                 <div class="nav-section">
                     <div class="nav-section-title">Categories</div>
-                    <a href="#" class="nav-item" data-category="work">
+                    <a href="#" class="nav-item" data-category="work" onclick="window.app && window.app.filterByCategory('work'); return false;">
                         <i class="fas fa-briefcase"></i>
                         <span>Work</span>
                         <span class="badge">12</span>
                     </a>
-                    <a href="#" class="nav-item" data-category="personal">
+                    <a href="#" class="nav-item" data-category="personal" onclick="window.app && window.app.filterByCategory('personal'); return false;">
                         <i class="fas fa-user"></i>
                         <span>Personal</span>
                         <span class="badge">8</span>
                     </a>
-                    <a href="#" class="nav-item" data-category="shopping">
+                    <a href="#" class="nav-item" data-category="shopping" onclick="window.app && window.app.filterByCategory('shopping'); return false;">
                         <i class="fas fa-shopping-cart"></i>
                         <span>Shopping</span>
                         <span class="badge">5</span>
                     </a>
-                    <a href="#" class="nav-item" data-category="health">
+                    <a href="#" class="nav-item" data-category="health" onclick="window.app && window.app.filterByCategory('health'); return false;">
                         <i class="fas fa-heartbeat"></i>
                         <span>Health</span>
                         <span class="badge">3</span>

@@ -2597,13 +2597,21 @@ class TaskFlowApp {
 
 // Initialize the app
 (async function() {
-    // Make app globally available for onclick handlers
-    window.app = new TaskFlowApp();
-    await window.app.init();
+    // Ensure DOM is fully loaded
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initApp);
+    } else {
+        await initApp();
+    }
     
-    // Add some sample tasks for demonstration if no tasks exist
-    if (window.app.tasks.length === 0) {
-    const now = new Date();
+    async function initApp() {
+        // Make app globally available for onclick handlers
+        window.app = new TaskFlowApp();
+        await window.app.init();
+        
+        // Add some sample tasks for demonstration if no tasks exist
+        if (window.app.tasks.length === 0) {
+        const now = new Date();
     const today = new Date(now);
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -2656,6 +2664,7 @@ class TaskFlowApp {
         await window.app.createTask(sampleTask);
     }
 }
+    }
 })().catch(error => {
     console.error('Failed to initialize app:', error);
 });
