@@ -3,139 +3,655 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calendar - Daily Vibe</title>
-    
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Styles -->
-    <link rel="stylesheet" href="css/main.css">
-    <link rel="stylesheet" href="css/calendar.css">
+    <title>TaskFlow - Calendar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --accent: #06b6d4;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --surface-hover: #f1f5f9;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--background) !important;
+            color: var(--text-primary) !important;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Top Navigation */
+        .top-nav {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow);
+        }
+
+        .nav-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .nav-menu {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 0.5rem;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .nav-item:hover {
+            background: var(--surface-hover);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-secondary {
+            background: var(--surface-hover);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        /* Main Container */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-header {
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .page-subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .calendar-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .current-month {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            min-width: 200px;
+            text-align: center;
+        }
+
+        /* Calendar Board */
+        .calendar-board {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .calendar-grid {
+            padding: 2rem;
+        }
+
+        .calendar-header {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .day-name {
+            text-align: center;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-size: 0.875rem;
+            letter-spacing: 0.05em;
+        }
+
+        .calendar-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1rem;
+            min-height: 600px;
+        }
+
+        /* Calendar Day Cell */
+        .calendar-day {
+            background: var(--background);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            min-height: 120px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .calendar-day:hover {
+            background: var(--surface-hover);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .calendar-day.other-month {
+            opacity: 0.3;
+        }
+
+        .calendar-day.today {
+            background: var(--gradient-primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .calendar-day.today .day-number {
+            color: white;
+            font-weight: 700;
+        }
+
+        .calendar-day.selected {
+            border: 2px solid var(--accent);
+            background: rgba(6, 182, 212, 0.1);
+        }
+
+        .calendar-day.has-events::after {
+            content: '';
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+        }
+
+        .day-number {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .day-events-preview {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            margin-top: 0.5rem;
+        }
+
+        .event-dot {
+            width: 100%;
+            height: 3px;
+            border-radius: 2px;
+            opacity: 0.8;
+        }
+
+        .event-dot.blue { background: #3b82f6; }
+        .event-dot.green { background: #10b981; }
+        .event-dot.purple { background: #8b5cf6; }
+        .event-dot.red { background: #ef4444; }
+        .event-dot.yellow { background: #f59e0b; }
+        .event-dot.pink { background: #ec4899; }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            border-radius: 1rem;
+            padding: 2rem;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .close-btn:hover {
+            background: var(--surface-hover);
+            color: var(--text-primary);
+        }
+
+        .selected-date-display {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+            text-align: center;
+            padding: 1rem;
+            background: var(--background);
+            border-radius: 0.5rem;
+            border: 1px solid var(--border);
+        }
+
+        .day-events {
+            margin-bottom: 1.5rem;
+        }
+
+        .event-card {
+            background: var(--background);
+            border-left: 4px solid var(--primary);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .event-card:hover {
+            background: var(--surface-hover);
+            transform: translateX(4px);
+        }
+
+        .event-card.blue { border-left-color: #3b82f6; }
+        .event-card.green { border-left-color: #10b981; }
+        .event-card.purple { border-left-color: #8b5cf6; }
+        .event-card.red { border-left-color: #ef4444; }
+        .event-card.yellow { border-left-color: #f59e0b; }
+        .event-card.pink { border-left-color: #ec4899; }
+
+        .event-card-title {
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+            color: var(--text-primary);
+        }
+
+        .event-card-time {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        .event-card-location {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .no-events {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 2rem;
+            font-style: italic;
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--background);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--background);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-container {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .nav-menu {
+                gap: 1rem;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .main-container {
+                padding: 1rem;
+            }
+
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .calendar-controls {
+                justify-content: center;
+                width: 100%;
+            }
+
+            .calendar-grid {
+                padding: 1rem;
+            }
+
+            .calendar-days {
+                gap: 0.5rem;
+                min-height: 400px;
+            }
+
+            .calendar-day {
+                min-height: 80px;
+                padding: 0.5rem;
+            }
+
+            .day-number {
+                font-size: 1rem;
+            }
+        }
+    </style>
 </head>
 <body>
-    <!-- Loading Screen -->
-    <div id="loadingScreen" class="loading-screen">
-        <div class="loading-content">
-            <div class="loading-spinner"></div>
-            <p class="loading-text">Loading Calendar...</p>
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <i class="fas fa-tasks"></i>
+                <span>TaskFlow</span>
+            </div>
+            
+            <div class="nav-menu">
+                <a href="index.html" class="nav-item">
+                    <i class="fas fa-columns"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="calendar.html" class="nav-item active">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Calendar</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Analytics</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-search"></i>
+                    <span>Search</span>
+                </a>
+            </div>
+            
+            <div class="nav-actions">
+                <button class="btn btn-primary" id="addTaskBtn">
+                    <i class="fas fa-plus"></i>
+                    Add Task
+                </button>
+                <button class="btn btn-secondary" id="searchTasksBtn">
+                    <i class="fas fa-search"></i>
+                    Search
+                </button>
+            </div>
         </div>
-    </div>
+    </nav>
 
     <!-- Main Container -->
-    <div class="app-container">
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Header -->
-            <header class="main-header">
-                <div class="header-left">
-                    <h1 class="page-title">Calendar Events</h1>
-                    <button id="addEventBtn" class="btn btn-primary">
-                        <i class="fas fa-plus"></i>
-                        <span>New Event</span>
-                    </button>
-                </div>
-                
-                <div class="header-right">
-                    <div class="calendar-controls">
-                        <button id="prevMonthBtn" class="btn btn-icon">
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-                        <h2 id="currentMonthYear" class="current-month"></h2>
-                        <button id="nextMonthBtn" class="btn btn-icon">
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
-                        <button id="todayBtn" class="btn btn-secondary">Today</button>
-                    </div>
-                </div>
-            </header>
+    <main class="main-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Calendar</h1>
+                <p class="page-subtitle">View and manage your scheduled events</p>
+            </div>
+            <div class="calendar-controls">
+                <button id="prevMonthBtn" class="btn btn-secondary">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <h2 id="currentMonthYear" class="current-month"></h2>
+                <button id="nextMonthBtn" class="btn btn-secondary">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                <button id="todayBtn" class="btn btn-secondary">Today</button>
+                <button id="addEventBtn" class="btn btn-primary">
+                    <i class="fas fa-plus"></i>
+                    New Event
+                </button>
+            </div>
+        </div>
 
-            <!-- Calendar Container -->
-            <div class="calendar-container">
-                <div class="calendar-grid">
-                    <div class="calendar-header">
-                        <div class="day-name">Sun</div>
-                        <div class="day-name">Mon</div>
-                        <div class="day-name">Tue</div>
-                        <div class="day-name">Wed</div>
-                        <div class="day-name">Thu</div>
-                        <div class="day-name">Fri</div>
-                        <div class="day-name">Sat</div>
-                    </div>
-                    <div id="calendarDays" class="calendar-days">
-                        <!-- Calendar days will be generated here -->
-                    </div>
+        <!-- Calendar Grid -->
+        <div class="calendar-board">
+            <div class="calendar-grid">
+                <div class="calendar-header">
+                    <div class="day-name">Sunday</div>
+                    <div class="day-name">Monday</div>
+                    <div class="day-name">Tuesday</div>
+                    <div class="day-name">Wednesday</div>
+                    <div class="day-name">Thursday</div>
+                    <div class="day-name">Friday</div>
+                    <div class="day-name">Saturday</div>
+                </div>
+                <div id="calendarDays" class="calendar-days">
+                    <!-- Calendar days will be generated here -->
                 </div>
             </div>
-        </main>
+        </div>
+    </main>
 
-        <!-- Event Sidebar -->
-        <aside id="eventSidebar" class="event-sidebar">
-            <div class="event-sidebar-header">
-                <h3>Event Details</h3>
-                <button id="closeEventSidebar" class="btn btn-icon">
+    <!-- Event Details Modal -->
+    <div id="eventDetailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Event Details</h2>
+                <button class="close-btn" id="closeEventDetails">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            
-            <div class="event-sidebar-content">
+            <div class="modal-body">
                 <div id="selectedDateDisplay" class="selected-date-display">
                     <!-- Selected date will be shown here -->
                 </div>
-                
                 <div id="dayEvents" class="day-events">
                     <!-- Events for selected day will be shown here -->
                 </div>
-                
-                <button id="addEventForDay" class="btn btn-primary btn-block">
+                <button id="addEventForDay" class="btn btn-primary">
                     <i class="fas fa-plus"></i>
                     Add Event for This Day
                 </button>
             </div>
-        </aside>
+        </div>
     </div>
 
     <!-- Event Modal -->
     <div id="eventModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="modalTitle">Add New Event</h2>
-                <button class="modal-close" onclick="closeEventModal()">
+                <h2 id="modalTitle" class="modal-title">Add New Event</h2>
+                <button class="close-btn" onclick="closeEventModal()">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             
-            <form id="eventForm" class="modal-body">
+            <form id="eventForm">
                 <div class="form-group">
-                    <label for="eventTitle">Event Title *</label>
-                    <input type="text" id="eventTitle" name="title" required placeholder="Enter event title">
+                    <label class="form-label" for="eventTitle">Event Title</label>
+                    <input type="text" id="eventTitle" name="title" class="form-input" required placeholder="Enter event title">
                 </div>
                 
                 <div class="form-group">
-                    <label for="eventDescription">Description</label>
-                    <textarea id="eventDescription" name="description" rows="3" placeholder="Enter event description"></textarea>
+                    <label class="form-label" for="eventDescription">Description</label>
+                    <textarea id="eventDescription" name="description" class="form-input form-textarea" placeholder="Enter event description"></textarea>
                 </div>
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="eventDate">Date *</label>
-                        <input type="date" id="eventDate" name="date" required>
+                        <label class="form-label" for="eventDate">Date</label>
+                        <input type="date" id="eventDate" name="date" class="form-input" required>
                     </div>
                     
                     <div class="form-group">
-                        <label for="eventTime">Time</label>
-                        <input type="time" id="eventTime" name="time">
+                        <label class="form-label" for="eventTime">Time</label>
+                        <input type="time" id="eventTime" name="time" class="form-input">
                     </div>
                 </div>
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="eventType">Event Type</label>
-                        <select id="eventType" name="type">
+                        <label class="form-label" for="eventType">Event Type</label>
+                        <select id="eventType" name="type" class="form-select">
                             <option value="meeting">Meeting</option>
                             <option value="appointment">Appointment</option>
                             <option value="reminder">Reminder</option>
@@ -146,8 +662,8 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="eventColor">Color</label>
-                        <select id="eventColor" name="color">
+                        <label class="form-label" for="eventColor">Color</label>
+                        <select id="eventColor" name="color" class="form-select">
                             <option value="blue">Blue</option>
                             <option value="green">Green</option>
                             <option value="purple">Purple</option>
@@ -159,46 +675,48 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="eventLocation">Location</label>
-                    <input type="text" id="eventLocation" name="location" placeholder="Enter location">
+                    <label class="form-label" for="eventLocation">Location</label>
+                    <input type="text" id="eventLocation" name="location" class="form-input" placeholder="Enter location">
                 </div>
                 
-                <div class="form-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="eventAllDay" name="allDay">
-                        <span>All day event</span>
-                    </label>
-                </div>
-                
-                <div class="form-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="eventRecurring" name="recurring">
-                        <span>Recurring event</span>
-                    </label>
-                </div>
-                
-                <div id="recurringOptions" class="recurring-options" style="display: none;">
-                    <div class="form-group">
-                        <label for="recurringType">Repeat</label>
-                        <select id="recurringType" name="recurringType">
-                            <option value="daily">Daily</option>
-                            <option value="weekly">Weekly</option>
-                            <option value="monthly">Monthly</option>
-                            <option value="yearly">Yearly</option>
-                        </select>
-                    </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeEventModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" style="display: none;" id="deleteEvent">Delete</button>
+                    <button type="submit" class="btn btn-primary" id="saveEvent">Save Event</button>
                 </div>
             </form>
-            
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeEventModal()">Cancel</button>
-                <button type="button" class="btn btn-danger" id="deleteEvent" style="display: none;">Delete</button>
-                <button type="submit" form="eventForm" class="btn btn-primary" id="saveEvent">Save Event</button>
-            </div>
         </div>
     </div>
 
     <!-- Scripts -->
     <script src="js/calendar.js"></script>
+
+    <!-- Form Actions Styling -->
+    <style>
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+        
+        @media (max-width: 480px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
 </body>
 </html>

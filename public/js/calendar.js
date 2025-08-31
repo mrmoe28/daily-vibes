@@ -5,13 +5,16 @@ let currentYear = currentDate.getFullYear();
 let selectedDate = null;
 let events = [];
 let editingEventId = null;
+let isInitialized = false;
 
 // Initialize calendar on page load
 document.addEventListener('DOMContentLoaded', () => {
-    initializeCalendar();
-    loadEvents();
-    setupEventListeners();
-    hideLoadingScreen();
+    if (!isInitialized) {
+        isInitialized = true;
+        initializeCalendar();
+        loadEvents();
+        setupEventListeners();
+    }
 });
 
 function initializeCalendar() {
@@ -20,243 +23,366 @@ function initializeCalendar() {
 }
 
 function setupEventListeners() {
-    // Month navigation
-    document.getElementById('prevMonthBtn').addEventListener('click', () => {
-        currentMonth--;
-        if (currentMonth < 0) {
-            currentMonth = 11;
-            currentYear--;
+    // Prevent duplicate listeners
+    const prevBtn = document.getElementById('prevMonthBtn');
+    const nextBtn = document.getElementById('nextMonthBtn');
+    const todayBtn = document.getElementById('todayBtn');
+    const addEventBtn = document.getElementById('addEventBtn');
+    const addEventForDayBtn = document.getElementById('addEventForDay');
+    const closeEventDetailsBtn = document.getElementById('closeEventDetails');
+    const eventForm = document.getElementById('eventForm');
+    const deleteEventBtn = document.getElementById('deleteEvent');
+
+    // Remove existing listeners by cloning elements
+    if (prevBtn) {
+        const newPrevBtn = prevBtn.cloneNode(true);
+        prevBtn.parentNode.replaceChild(newPrevBtn, prevBtn);
+        newPrevBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            currentMonth--;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            renderCalendar();
+            updateMonthYearDisplay();
+        });
+    }
+
+    if (nextBtn) {
+        const newNextBtn = nextBtn.cloneNode(true);
+        nextBtn.parentNode.replaceChild(newNextBtn, nextBtn);
+        newNextBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            renderCalendar();
+            updateMonthYearDisplay();
+        });
+    }
+
+    if (todayBtn) {
+        const newTodayBtn = todayBtn.cloneNode(true);
+        todayBtn.parentNode.replaceChild(newTodayBtn, todayBtn);
+        newTodayBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const today = new Date();
+            currentMonth = today.getMonth();
+            currentYear = today.getFullYear();
+            renderCalendar();
+            updateMonthYearDisplay();
+        });
+    }
+
+    if (addEventBtn) {
+        const newAddEventBtn = addEventBtn.cloneNode(true);
+        addEventBtn.parentNode.replaceChild(newAddEventBtn, addEventBtn);
+        newAddEventBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            openEventModal();
+        });
+    }
+
+    if (addEventForDayBtn) {
+        const newAddEventForDayBtn = addEventForDayBtn.cloneNode(true);
+        addEventForDayBtn.parentNode.replaceChild(newAddEventForDayBtn, addEventForDayBtn);
+        newAddEventForDayBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (selectedDate) {
+                closeEventDetailsModal();
+                openEventModal(selectedDate);
+            }
+        });
+    }
+
+    if (closeEventDetailsBtn) {
+        const newCloseBtn = closeEventDetailsBtn.cloneNode(true);
+        closeEventDetailsBtn.parentNode.replaceChild(newCloseBtn, closeEventDetailsBtn);
+        newCloseBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            closeEventDetailsModal();
+        });
+    }
+
+    if (eventForm) {
+        const newEventForm = eventForm.cloneNode(true);
+        eventForm.parentNode.replaceChild(newEventForm, eventForm);
+        newEventForm.addEventListener('submit', handleEventSubmit);
+    }
+
+    if (deleteEventBtn) {
+        const newDeleteBtn = deleteEventBtn.cloneNode(true);
+        deleteEventBtn.parentNode.replaceChild(newDeleteBtn, deleteEventBtn);
+        newDeleteBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            handleDeleteEvent();
+        });
+    }
+
+    // Add modal close handlers
+    window.addEventListener('click', (e) => {
+        const eventModal = document.getElementById('eventModal');
+        const eventDetailsModal = document.getElementById('eventDetailsModal');
+        if (e.target === eventModal) {
+            closeEventModal();
         }
-        renderCalendar();
-        updateMonthYearDisplay();
-    });
-
-    document.getElementById('nextMonthBtn').addEventListener('click', () => {
-        currentMonth++;
-        if (currentMonth > 11) {
-            currentMonth = 0;
-            currentYear++;
+        if (e.target === eventDetailsModal) {
+            closeEventDetailsModal();
         }
-        renderCalendar();
-        updateMonthYearDisplay();
-    });
-
-    document.getElementById('todayBtn').addEventListener('click', () => {
-        currentDate = new Date();
-        currentMonth = currentDate.getMonth();
-        currentYear = currentDate.getFullYear();
-        renderCalendar();
-        updateMonthYearDisplay();
-    });
-
-    // Add event button
-    document.getElementById('addEventBtn').addEventListener('click', openEventModal);
-    document.getElementById('addEventForDay').addEventListener('click', () => {
-        if (selectedDate) {
-            openEventModal(selectedDate);
-        }
-    });
-
-    // Event sidebar
-    document.getElementById('closeEventSidebar').addEventListener('click', closeEventSidebar);
-
-    // Event form
-    document.getElementById('eventForm').addEventListener('submit', handleEventSubmit);
-    document.getElementById('eventAllDay').addEventListener('change', (e) => {
-        const timeInput = document.getElementById('eventTime');
-        if (e.target.checked) {
-            timeInput.disabled = true;
-            timeInput.value = '';
-        } else {
-            timeInput.disabled = false;
-        }
-    });
-
-    document.getElementById('eventRecurring').addEventListener('change', (e) => {
-        const recurringOptions = document.getElementById('recurringOptions');
-        recurringOptions.style.display = e.target.checked ? 'block' : 'none';
-    });
-
-    // Delete event button
-    document.getElementById('deleteEvent').addEventListener('click', handleDeleteEvent);
-
-    // Sidebar toggle
-    document.getElementById('sidebarToggle').addEventListener('click', () => {
-        document.getElementById('sidebar').classList.toggle('collapsed');
     });
 }
 
 function renderCalendar() {
-    const calendarDays = document.getElementById('calendarDays');
-    calendarDays.innerHTML = '';
+    try {
+        const calendarDays = document.getElementById('calendarDays');
+        if (!calendarDays) return;
+        
+        calendarDays.innerHTML = '';
 
-    const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    const prevMonthDays = new Date(currentYear, currentMonth, 0).getDate();
+        const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+        const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+        const prevMonthDays = new Date(currentYear, currentMonth, 0).getDate();
 
-    // Add previous month's trailing days
-    for (let i = firstDay - 1; i >= 0; i--) {
-        const dayDiv = createDayElement(prevMonthDays - i, true, false);
-        calendarDays.appendChild(dayDiv);
-    }
+        // Add previous month's trailing days
+        for (let i = firstDay - 1; i >= 0; i--) {
+            const dayDiv = createDayElement(prevMonthDays - i, true, false);
+            if (dayDiv) calendarDays.appendChild(dayDiv);
+        }
 
-    // Add current month's days
-    for (let day = 1; day <= daysInMonth; day++) {
-        const isToday = isDateToday(currentYear, currentMonth, day);
-        const dayDiv = createDayElement(day, false, isToday);
-        calendarDays.appendChild(dayDiv);
-    }
+        // Add current month's days
+        for (let day = 1; day <= daysInMonth; day++) {
+            const isToday = isDateToday(currentYear, currentMonth, day);
+            const dayDiv = createDayElement(day, false, isToday);
+            if (dayDiv) calendarDays.appendChild(dayDiv);
+        }
 
-    // Add next month's leading days
-    const totalCells = calendarDays.children.length;
-    const remainingCells = 42 - totalCells; // 6 rows × 7 days
-    for (let day = 1; day <= remainingCells; day++) {
-        const dayDiv = createDayElement(day, true, false);
-        calendarDays.appendChild(dayDiv);
+        // Add next month's leading days
+        const totalCells = calendarDays.children.length;
+        const remainingCells = 42 - totalCells; // 6 rows × 7 days
+        for (let day = 1; day <= remainingCells; day++) {
+            const dayDiv = createDayElement(day, true, false);
+            if (dayDiv) calendarDays.appendChild(dayDiv);
+        }
+    } catch (error) {
+        console.error('Error rendering calendar:', error);
     }
 }
 
 function createDayElement(day, isOtherMonth, isToday) {
-    const dayDiv = document.createElement('div');
-    dayDiv.className = 'calendar-day';
-    
-    if (isOtherMonth) {
-        dayDiv.classList.add('other-month');
-    }
-    
-    if (isToday) {
-        dayDiv.classList.add('today');
-    }
-
-    const dayNumber = document.createElement('div');
-    dayNumber.className = 'day-number';
-    dayNumber.textContent = day;
-    dayDiv.appendChild(dayNumber);
-
-    // Add events preview
-    if (!isOtherMonth) {
-        const dateStr = formatDateString(currentYear, currentMonth, day);
-        const dayEvents = events.filter(event => event.date === dateStr);
+    try {
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'calendar-day';
         
-        if (dayEvents.length > 0) {
-            dayDiv.classList.add('has-events');
-            const eventsPreview = document.createElement('div');
-            eventsPreview.className = 'day-events-preview';
-            
-            dayEvents.slice(0, 3).forEach(event => {
-                const eventDot = document.createElement('div');
-                eventDot.className = `event-dot ${event.color || 'blue'}`;
-                eventsPreview.appendChild(eventDot);
-            });
-            
-            dayDiv.appendChild(eventsPreview);
+        if (isOtherMonth) {
+            dayDiv.classList.add('other-month');
         }
-    }
+        
+        if (isToday) {
+            dayDiv.classList.add('today');
+        }
 
-    // Add click event
-    if (!isOtherMonth) {
-        dayDiv.addEventListener('click', () => {
-            selectDate(currentYear, currentMonth, day);
-        });
-    }
+        const dayNumber = document.createElement('div');
+        dayNumber.className = 'day-number';
+        dayNumber.textContent = day;
+        dayDiv.appendChild(dayNumber);
 
-    return dayDiv;
+        // Add events preview
+        if (!isOtherMonth) {
+            const dateStr = formatDateString(currentYear, currentMonth, day);
+            const dayEvents = events.filter(event => event && event.date === dateStr);
+            
+            if (dayEvents.length > 0) {
+                dayDiv.classList.add('has-events');
+                const eventsPreview = document.createElement('div');
+                eventsPreview.className = 'day-events-preview';
+                
+                dayEvents.slice(0, 3).forEach(event => {
+                    const eventDot = document.createElement('div');
+                    eventDot.className = `event-dot ${event.color || 'blue'}`;
+                    eventsPreview.appendChild(eventDot);
+                });
+                
+                dayDiv.appendChild(eventsPreview);
+            }
+        }
+
+        // Add click event
+        if (!isOtherMonth) {
+            dayDiv.addEventListener('click', (e) => {
+                e.preventDefault();
+                selectDate(currentYear, currentMonth, day);
+            });
+        }
+
+        return dayDiv;
+    } catch (error) {
+        console.error('Error creating day element:', error);
+        return null;
+    }
 }
 
 function selectDate(year, month, day) {
-    // Remove previous selection
-    document.querySelectorAll('.calendar-day.selected').forEach(el => {
-        el.classList.remove('selected');
-    });
+    try {
+        // Remove previous selection
+        document.querySelectorAll('.calendar-day.selected').forEach(el => {
+            el.classList.remove('selected');
+        });
 
-    // Add selection to clicked day
-    const dayElements = document.querySelectorAll('.calendar-day:not(.other-month)');
-    dayElements[day - 1].classList.add('selected');
+        // Find and select the clicked day
+        const calendarDays = document.querySelectorAll('.calendar-day');
+        calendarDays.forEach(dayEl => {
+            const dayNumber = dayEl.querySelector('.day-number');
+            if (dayNumber && parseInt(dayNumber.textContent) === day && !dayEl.classList.contains('other-month')) {
+                dayEl.classList.add('selected');
+            }
+        });
 
-    selectedDate = new Date(year, month, day);
-    openEventSidebar(selectedDate);
+        selectedDate = new Date(year, month, day);
+        openEventDetailsModal(selectedDate);
+    } catch (error) {
+        console.error('Error selecting date:', error);
+    }
 }
 
-function openEventSidebar(date) {
-    const sidebar = document.getElementById('eventSidebar');
-    sidebar.classList.add('open');
+function openEventDetailsModal(date) {
+    try {
+        const modal = document.getElementById('eventDetailsModal');
+        if (modal) {
+            modal.classList.add('show');
 
-    // Display selected date
-    const dateDisplay = document.getElementById('selectedDateDisplay');
-    dateDisplay.textContent = formatDateDisplay(date);
+            // Display selected date
+            const dateDisplay = document.getElementById('selectedDateDisplay');
+            if (dateDisplay) {
+                dateDisplay.textContent = formatDateDisplay(date);
+            }
 
-    // Display events for selected date
-    displayDayEvents(date);
+            // Display events for selected date
+            displayDayEvents(date);
+        }
+    } catch (error) {
+        console.error('Error opening event details modal:', error);
+    }
 }
 
-function closeEventSidebar() {
-    const sidebar = document.getElementById('eventSidebar');
-    sidebar.classList.remove('open');
+function closeEventDetailsModal() {
+    try {
+        const modal = document.getElementById('eventDetailsModal');
+        if (modal) {
+            modal.classList.remove('show');
+        }
+    } catch (error) {
+        console.error('Error closing event details modal:', error);
+    }
 }
 
 function displayDayEvents(date) {
-    const dayEventsContainer = document.getElementById('dayEvents');
-    const dateStr = formatDateString(date.getFullYear(), date.getMonth(), date.getDate());
-    const dayEvents = events.filter(event => event.date === dateStr);
+    try {
+        const dayEventsContainer = document.getElementById('dayEvents');
+        if (!dayEventsContainer) return;
+        
+        const dateStr = formatDateString(date.getFullYear(), date.getMonth(), date.getDate());
+        const dayEvents = events.filter(event => event.date === dateStr);
 
-    if (dayEvents.length === 0) {
-        dayEventsContainer.innerHTML = '<p class="no-events">No events for this day</p>';
-        return;
+        if (dayEvents.length === 0) {
+            dayEventsContainer.innerHTML = '<p class="no-events">No events for this day</p>';
+            return;
+        }
+
+        dayEventsContainer.innerHTML = '';
+        dayEvents.forEach(event => {
+            const eventCard = document.createElement('div');
+            eventCard.className = `event-card ${event.color || 'blue'}`;
+            eventCard.innerHTML = `
+                <div class="event-card-title">${escapeHtml(event.title || '')}</div>
+                ${event.time ? `<div class="event-card-time">${escapeHtml(event.time)}</div>` : ''}
+                ${event.location ? `<div class="event-card-location"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(event.location)}</div>` : ''}
+            `;
+            eventCard.addEventListener('click', (e) => {
+                e.preventDefault();
+                editEvent(event);
+            });
+            dayEventsContainer.appendChild(eventCard);
+        });
+    } catch (error) {
+        console.error('Error displaying day events:', error);
     }
-
-    dayEventsContainer.innerHTML = '';
-    dayEvents.forEach(event => {
-        const eventCard = document.createElement('div');
-        eventCard.className = `event-card ${event.color || 'blue'}`;
-        eventCard.innerHTML = `
-            <div class="event-card-title">${event.title}</div>
-            ${event.time ? `<div class="event-card-time">${event.time}</div>` : ''}
-            ${event.location ? `<div class="event-card-location"><i class="fas fa-map-marker-alt"></i> ${event.location}</div>` : ''}
-        `;
-        eventCard.addEventListener('click', () => editEvent(event));
-        dayEventsContainer.appendChild(eventCard);
-    });
 }
 
 function openEventModal(date = null) {
-    const modal = document.getElementById('eventModal');
-    modal.classList.add('show');
-    
-    // Reset form
-    document.getElementById('eventForm').reset();
-    document.getElementById('modalTitle').textContent = 'Add New Event';
-    document.getElementById('deleteEvent').style.display = 'none';
-    editingEventId = null;
+    try {
+        const modal = document.getElementById('eventModal');
+        if (modal) {
+            modal.classList.add('show');
+            
+            // Reset form
+            const eventForm = document.getElementById('eventForm');
+            const modalTitle = document.getElementById('modalTitle');
+            const deleteBtn = document.getElementById('deleteEvent');
+            
+            if (eventForm) eventForm.reset();
+            if (modalTitle) modalTitle.textContent = 'Add New Event';
+            if (deleteBtn) deleteBtn.style.display = 'none';
+            editingEventId = null;
 
-    // Set date if provided
-    if (date) {
-        document.getElementById('eventDate').value = formatDateInput(date);
-    } else {
-        document.getElementById('eventDate').value = formatDateInput(new Date());
+            // Set date if provided
+            const eventDateInput = document.getElementById('eventDate');
+            if (eventDateInput) {
+                if (date) {
+                    eventDateInput.value = formatDateInput(date);
+                } else {
+                    eventDateInput.value = formatDateInput(new Date());
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error opening event modal:', error);
     }
 }
 
 function closeEventModal() {
-    const modal = document.getElementById('eventModal');
-    modal.classList.remove('show');
-    editingEventId = null;
+    try {
+        const modal = document.getElementById('eventModal');
+        if (modal) {
+            modal.classList.remove('show');
+        }
+        editingEventId = null;
+    } catch (error) {
+        console.error('Error closing event modal:', error);
+    }
 }
 
 function editEvent(event) {
-    openEventModal();
-    
-    document.getElementById('modalTitle').textContent = 'Edit Event';
-    document.getElementById('eventTitle').value = event.title;
-    document.getElementById('eventDescription').value = event.description || '';
-    document.getElementById('eventDate').value = event.date;
-    document.getElementById('eventTime').value = event.time || '';
-    document.getElementById('eventType').value = event.type || 'other';
-    document.getElementById('eventColor').value = event.color || 'blue';
-    document.getElementById('eventLocation').value = event.location || '';
-    document.getElementById('eventAllDay').checked = event.allDay || false;
-    document.getElementById('deleteEvent').style.display = 'block';
-    
-    editingEventId = event.id;
+    try {
+        closeEventDetailsModal();
+        openEventModal();
+        
+        const modalTitle = safeGetElement('modalTitle');
+        const eventTitle = safeGetElement('eventTitle');
+        const eventDescription = safeGetElement('eventDescription');
+        const eventDate = safeGetElement('eventDate');
+        const eventTime = safeGetElement('eventTime');
+        const eventType = safeGetElement('eventType');
+        const eventColor = safeGetElement('eventColor');
+        const eventLocation = safeGetElement('eventLocation');
+        const deleteEvent = safeGetElement('deleteEvent');
+        
+        if (modalTitle) modalTitle.textContent = 'Edit Event';
+        if (eventTitle) eventTitle.value = event.title || '';
+        if (eventDescription) eventDescription.value = event.description || '';
+        if (eventDate) eventDate.value = event.date || '';
+        if (eventTime) eventTime.value = event.time || '';
+        if (eventType) eventType.value = event.type || 'other';
+        if (eventColor) eventColor.value = event.color || 'blue';
+        if (eventLocation) eventLocation.value = event.location || '';
+        if (deleteEvent) deleteEvent.style.display = 'block';
+        
+        editingEventId = event.id;
+    } catch (error) {
+        console.error('Error editing event:', error);
+    }
 }
 
 async function handleEventSubmit(e) {
@@ -343,11 +469,15 @@ async function loadEvents() {
         if (response.ok) {
             const data = await response.json();
             events = data.events || [];
+            // Re-render calendar after loading events
+            renderCalendar();
         } else {
-            console.error('Failed to load events:', response.status);
+            console.warn('Failed to load events:', response.status);
+            events = []; // Use empty array as fallback
         }
     } catch (error) {
-        console.error('Error loading events:', error);
+        console.warn('Error loading events:', error);
+        events = []; // Use empty array as fallback
     }
 }
 
@@ -378,10 +508,38 @@ function formatDateDisplay(date) {
     return date.toLocaleDateString('en-US', options);
 }
 
-function hideLoadingScreen() {
-    setTimeout(() => {
-        document.getElementById('loadingScreen').style.display = 'none';
-    }, 500);
+// Helper function to escape HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Global modal functions for onclick handlers
+window.closeEventModal = closeEventModal;
+window.openEventModal = openEventModal;
+
+// Enhanced error handling for missing DOM elements
+function safeGetElement(id) {
+    const element = document.getElementById(id);
+    if (!element) {
+        console.warn(`Element with ID '${id}' not found`);
+    }
+    return element;
+}
+
+// Update DOM manipulation to use safe getter
+function updateMonthYearDisplay() {
+    try {
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                           'July', 'August', 'September', 'October', 'November', 'December'];
+        const element = safeGetElement('currentMonthYear');
+        if (element) {
+            element.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+        }
+    } catch (error) {
+        console.error('Error updating month/year display:', error);
+    }
 }
 
 function showNotification(message, type = 'info') {
