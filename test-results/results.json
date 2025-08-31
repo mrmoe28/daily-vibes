@@ -52,7 +52,7 @@
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
         ],
-        "timeout": 30000
+        "timeout": 45000
       },
       {
         "outputDir": "/Users/user/Desktop/daily-vibe/test-results",
@@ -68,7 +68,7 @@
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
         ],
-        "timeout": 30000
+        "timeout": 45000
       }
     ],
     "shard": null,
@@ -86,18 +86,18 @@
   },
   "suites": [
     {
-      "title": "calendar-functionality.spec.js",
-      "file": "calendar-functionality.spec.js",
+      "title": "calendar-visual-test.spec.js",
+      "file": "calendar-visual-test.spec.js",
       "column": 0,
       "line": 0,
       "specs": [
         {
-          "title": "calendar page functionality and event management",
-          "ok": false,
+          "title": "visual verification of calendar theme matching dashboard",
+          "ok": true,
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 45000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "chrome",
@@ -106,191 +106,129 @@
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "timedOut",
-                  "duration": 30616,
-                  "error": {
-                    "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
-                    "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
-                  },
-                  "errors": [
-                    {
-                      "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
-                    }
-                  ],
+                  "status": "passed",
+                  "duration": 11940,
+                  "errors": [],
                   "stdout": [
                     {
-                      "text": "📅 Testing calendar page on: https://daily-vibes-flax.vercel.app\n"
+                      "text": "🎨 Visual verification of calendar theme consistency\n"
                     },
                     {
-                      "text": "🏠 Main page loaded, testing calendar navigation...\n"
+                      "text": "📅 Calendar page loaded\n"
                     },
                     {
-                      "text": "✅ Calendar navigation found, clicking...\n"
+                      "text": "\n🏗️ THEME STRUCTURE:\n"
                     },
                     {
-                      "text": "Current URL: https://daily-vibes-flax.vercel.app/calendar.html\n"
-                    },
-                    {
-                      "text": "✅ Successfully navigated to calendar page\n"
-                    },
-                    {
-                      "text": "\n🗓️ Testing calendar layout...\n"
+                      "text": "   sidebar: ✅ (1)\n"
                     },
                     {
                       "text": "   calendarGrid: ✅ (1)\n"
                     },
                     {
-                      "text": "   calendarDays: ✅ (1)\n"
+                      "text": "   mainHeader: ✅ (1)\n"
                     },
                     {
-                      "text": "   currentMonth: ✅ (1)\n"
+                      "text": "   calendarDays: ✅ (1)\n"
                     },
                     {
                       "text": "   addEventBtn: ✅ (1)\n"
                     },
                     {
-                      "text": "   prevMonthBtn: ✅ (1)\n"
+                      "text": "   todayCell: ✅ (1)\n"
                     },
                     {
-                      "text": "   nextMonthBtn: ✅ (1)\n"
+                      "text": "\n🎨 THEME STYLING ANALYSIS:\n"
                     },
                     {
-                      "text": "   todayBtn: ✅ (1)\n"
+                      "text": "   Dark sidebar: ✅\n"
                     },
                     {
-                      "text": "✅ Calendar layout complete\n"
+                      "text": "   Dark header: ✅\n"
                     },
                     {
-                      "text": "\n📆 Testing month navigation...\n"
+                      "text": "   Glassmorphism effects: ✅\n"
                     },
                     {
-                      "text": "Current month: August 2025\n"
+                      "text": "   Transparent elements: ✅\n"
                     },
                     {
-                      "text": "After next click: September 2025\n"
+                      "text": "   Today cell gradient: ✅\n"
                     },
                     {
-                      "text": "✅ Month navigation working\n"
+                      "text": "   Header backdrop blur: ✅\n"
                     },
                     {
-                      "text": "Today highlighted: ✅ (1 cells)\n"
+                      "text": "   Sidebar backdrop blur: ✅\n"
                     },
                     {
-                      "text": "\n➕ Testing event creation...\n"
+                      "text": "\n📝 Testing modal theme consistency...\n"
                     },
                     {
-                      "text": "Event modal opened: ✅\n"
+                      "text": "   Modal dark background: ✅\n"
                     },
                     {
-                      "text": "✅ Event form filled\n"
+                      "text": "   Modal backdrop blur: ✅\n"
                     },
                     {
-                      "text": "💾 Submitting event...\n"
+                      "text": "   Modal rounded corners: ✅\n"
                     },
                     {
-                      "text": "   📡 API REQUEST: POST https://daily-vibes-flax.vercel.app/api/events\n"
+                      "text": "   Modal border styling: ✅\n"
                     },
                     {
-                      "text": "   📨 API RESPONSE: 200 \n"
+                      "text": "\n🏆 FINAL THEME ASSESSMENT:\n"
                     },
                     {
-                      "text": "   📨 API RESPONSE: 200 \n"
+                      "text": "   Element structure: 6/6 elements present\n"
                     },
                     {
-                      "text": "   📡 API REQUEST: GET https://daily-vibes-flax.vercel.app/api/events\n"
+                      "text": "   Theme consistency: 7/7 features working\n"
                     },
                     {
-                      "text": "   📨 API RESPONSE: 200 \n"
+                      "text": "\n🎉 EXCELLENT! Calendar theme perfectly matches dashboard!\n"
                     },
                     {
-                      "text": "\n📊 EVENT CREATION TEST RESULTS:\n"
+                      "text": "   ✅ Dark theme with animated background\n"
                     },
                     {
-                      "text": "   API Requests: 2\n"
+                      "text": "   ✅ Glassmorphism and backdrop blur effects\n"
                     },
                     {
-                      "text": "   API Responses: 3\n"
+                      "text": "   ✅ Consistent sidebar and navigation\n"
                     },
                     {
-                      "text": "   ✅ Event creation API working\n"
+                      "text": "   ✅ Proper color scheme and gradients\n"
                     },
                     {
-                      "text": "   Modal closed: ❌\n"
+                      "text": "   ✅ Modal and form styling matches\n"
                     },
                     {
-                      "text": "\n📋 Testing day selection and event sidebar...\n"
-                    },
-                    {
-                      "text": "   Event sidebar opened: ✅\n"
-                    },
-                    {
-                      "text": "   Selected date display: ✅\n"
-                    },
-                    {
-                      "text": "   Add event for day button: ✅\n"
-                    },
-                    {
-                      "text": "   Sidebar closed: ✅\n"
-                    },
-                    {
-                      "text": "\n🔄 Testing navigation back to main app...\n"
-                    },
-                    {
-                      "text": "   Back to main page: ✅\n"
-                    },
-                    {
-                      "text": "\n🎯 CALENDAR FUNCTIONALITY ASSESSMENT:\n"
-                    },
-                    {
-                      "text": "   ✅ Working Features (5): Calendar Layout, Month Navigation, Current Day Highlighting, Event Modal, Event API\n"
-                    },
-                    {
-                      "text": "   ❌ Issues (0): \n"
-                    },
-                    {
-                      "text": "\n🎉 SUCCESS! Calendar page fully functional!\n"
-                    },
-                    {
-                      "text": "   📅 Large calendar format with current day highlighting\n"
-                    },
-                    {
-                      "text": "   🎨 Consistent earth tone theme styling\n"
-                    },
-                    {
-                      "text": "   ➕ Event creation and management working\n"
-                    },
-                    {
-                      "text": "   📱 Responsive design and navigation\n"
+                      "text": "\n   🎨 Visual coherence achieved across entire application!\n"
                     }
                   ],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2025-08-31T02:29:54.140Z",
+                  "startTime": "2025-08-31T02:44:33.703Z",
                   "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "error-context",
-                      "contentType": "text/markdown",
-                      "path": "/Users/user/Desktop/daily-vibe/test-results/calendar-functionality-cal-68d8d-nality-and-event-management-chrome/error-context.md"
-                    }
-                  ]
+                  "attachments": []
                 }
               ],
-              "status": "unexpected"
+              "status": "expected"
             }
           ],
-          "id": "95a1268263370304ed0a-fe2c8c8a4dbb1043db2a",
-          "file": "calendar-functionality.spec.js",
+          "id": "25aaab9e6283f4a4d2fd-d59e84bd760eda9889e5",
+          "file": "calendar-visual-test.spec.js",
           "line": 3,
           "column": 1
         },
         {
-          "title": "calendar page functionality and event management",
-          "ok": false,
+          "title": "visual verification of calendar theme matching dashboard",
+          "ok": true,
           "tags": [],
           "tests": [
             {
-              "timeout": 30000,
+              "timeout": 45000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "performance",
@@ -299,126 +237,119 @@
                 {
                   "workerIndex": 1,
                   "parallelIndex": 1,
-                  "status": "timedOut",
-                  "duration": 30562,
-                  "error": {
-                    "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
-                    "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
-                  },
-                  "errors": [
-                    {
-                      "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
-                    },
-                    {
-                      "location": {
-                        "file": "/Users/user/Desktop/daily-vibe/tests/calendar-functionality.spec.js",
-                        "column": 14,
-                        "line": 142
-                      },
-                      "message": "Error: page.waitForTimeout: Test timeout of 30000ms exceeded.\n\n  140 |   console.log('💾 Submitting event...');\n  141 |   await page.click('#saveEvent');\n> 142 |   await page.waitForTimeout(5000);\n      |              ^\n  143 |   \n  144 |   console.log('\\n📊 EVENT CREATION TEST RESULTS:');\n  145 |   console.log(`   API Requests: ${requests.length}`);\n    at /Users/user/Desktop/daily-vibe/tests/calendar-functionality.spec.js:142:14"
-                    }
-                  ],
+                  "status": "passed",
+                  "duration": 10915,
+                  "errors": [],
                   "stdout": [
                     {
-                      "text": "📅 Testing calendar page on: https://daily-vibes-flax.vercel.app\n"
+                      "text": "🎨 Visual verification of calendar theme consistency\n"
                     },
                     {
-                      "text": "🏠 Main page loaded, testing calendar navigation...\n"
+                      "text": "📅 Calendar page loaded\n"
                     },
                     {
-                      "text": "✅ Calendar navigation found, clicking...\n"
+                      "text": "\n🏗️ THEME STRUCTURE:\n"
                     },
                     {
-                      "text": "Current URL: https://daily-vibes-flax.vercel.app/calendar.html\n"
-                    },
-                    {
-                      "text": "✅ Successfully navigated to calendar page\n"
-                    },
-                    {
-                      "text": "\n🗓️ Testing calendar layout...\n"
+                      "text": "   sidebar: ✅ (1)\n"
                     },
                     {
                       "text": "   calendarGrid: ✅ (1)\n"
                     },
                     {
-                      "text": "   calendarDays: ✅ (1)\n"
+                      "text": "   mainHeader: ✅ (1)\n"
                     },
                     {
-                      "text": "   currentMonth: ✅ (1)\n"
+                      "text": "   calendarDays: ✅ (1)\n"
                     },
                     {
                       "text": "   addEventBtn: ✅ (1)\n"
                     },
                     {
-                      "text": "   prevMonthBtn: ✅ (1)\n"
+                      "text": "   todayCell: ✅ (1)\n"
                     },
                     {
-                      "text": "   nextMonthBtn: ✅ (1)\n"
+                      "text": "\n🎨 THEME STYLING ANALYSIS:\n"
                     },
                     {
-                      "text": "   todayBtn: ✅ (1)\n"
+                      "text": "   Dark sidebar: ✅\n"
                     },
                     {
-                      "text": "✅ Calendar layout complete\n"
+                      "text": "   Dark header: ✅\n"
                     },
                     {
-                      "text": "\n📆 Testing month navigation...\n"
+                      "text": "   Glassmorphism effects: ✅\n"
                     },
                     {
-                      "text": "Current month: August 2025\n"
+                      "text": "   Transparent elements: ✅\n"
                     },
                     {
-                      "text": "After next click: September 2025\n"
+                      "text": "   Today cell gradient: ✅\n"
                     },
                     {
-                      "text": "✅ Month navigation working\n"
+                      "text": "   Header backdrop blur: ✅\n"
                     },
                     {
-                      "text": "Today highlighted: ✅ (1 cells)\n"
+                      "text": "   Sidebar backdrop blur: ✅\n"
                     },
                     {
-                      "text": "\n➕ Testing event creation...\n"
+                      "text": "\n📝 Testing modal theme consistency...\n"
                     },
                     {
-                      "text": "Event modal opened: ✅\n"
+                      "text": "   Modal dark background: ✅\n"
                     },
                     {
-                      "text": "✅ Event form filled\n"
+                      "text": "   Modal backdrop blur: ✅\n"
                     },
                     {
-                      "text": "💾 Submitting event...\n"
+                      "text": "   Modal rounded corners: ✅\n"
                     },
                     {
-                      "text": "   📡 API REQUEST: POST https://daily-vibes-flax.vercel.app/api/events\n"
+                      "text": "   Modal border styling: ✅\n"
                     },
                     {
-                      "text": "   📨 API RESPONSE: 200 \n"
+                      "text": "\n🏆 FINAL THEME ASSESSMENT:\n"
                     },
                     {
-                      "text": "   📡 API REQUEST: GET https://daily-vibes-flax.vercel.app/api/events\n"
+                      "text": "   Element structure: 6/6 elements present\n"
                     },
                     {
-                      "text": "   📨 API RESPONSE: 200 \n"
+                      "text": "   Theme consistency: 7/7 features working\n"
+                    },
+                    {
+                      "text": "\n🎉 EXCELLENT! Calendar theme perfectly matches dashboard!\n"
+                    },
+                    {
+                      "text": "   ✅ Dark theme with animated background\n"
+                    },
+                    {
+                      "text": "   ✅ Glassmorphism and backdrop blur effects\n"
+                    },
+                    {
+                      "text": "   ✅ Consistent sidebar and navigation\n"
+                    },
+                    {
+                      "text": "   ✅ Proper color scheme and gradients\n"
+                    },
+                    {
+                      "text": "   ✅ Modal and form styling matches\n"
+                    },
+                    {
+                      "text": "\n   🎨 Visual coherence achieved across entire application!\n"
                     }
                   ],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2025-08-31T02:29:54.314Z",
+                  "startTime": "2025-08-31T02:44:33.681Z",
                   "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "error-context",
-                      "contentType": "text/markdown",
-                      "path": "/Users/user/Desktop/daily-vibe/test-results/calendar-functionality-cal-68d8d-nality-and-event-management-performance/error-context.md"
-                    }
-                  ]
+                  "attachments": []
                 }
               ],
-              "status": "unexpected"
+              "status": "expected"
             }
           ],
-          "id": "95a1268263370304ed0a-28e8944b61cc213d3fd2",
-          "file": "calendar-functionality.spec.js",
+          "id": "25aaab9e6283f4a4d2fd-3a01de8229d4be4d8c3e",
+          "file": "calendar-visual-test.spec.js",
           "line": 3,
           "column": 1
         }
@@ -427,11 +358,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2025-08-31T02:29:38.874Z",
-    "duration": 50557.208999999995,
-    "expected": 0,
+    "startTime": "2025-08-31T02:44:27.692Z",
+    "duration": 21763.944,
+    "expected": 2,
     "skipped": 0,
-    "unexpected": 2,
+    "unexpected": 0,
     "flaky": 0
   }
 }
