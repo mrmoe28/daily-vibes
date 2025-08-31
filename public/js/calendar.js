@@ -216,7 +216,12 @@ function createDayElement(day, isOtherMonth, isToday) {
         // Add events preview
         if (!isOtherMonth) {
             const dateStr = formatDateString(currentYear, currentMonth, day);
-            const dayEvents = events.filter(event => event && event.date === dateStr);
+            const dayEvents = events.filter(event => {
+                if (!event || !event.date) return false;
+                // Handle both formats: "2025-08-31" and "2025-08-31T04:00:00.000Z"
+                const eventDateStr = event.date.split('T')[0]; // Extract date part
+                return eventDateStr === dateStr;
+            });
             
             if (dayEvents.length > 0) {
                 dayDiv.classList.add('has-events');
@@ -370,7 +375,12 @@ function displayDayEvents(date) {
         if (!dayEventsContainer) return;
         
         const dateStr = formatDateString(date.getFullYear(), date.getMonth(), date.getDate());
-        const dayEvents = events.filter(event => event.date === dateStr);
+        const dayEvents = events.filter(event => {
+            if (!event || !event.date) return false;
+            // Handle both formats: "2025-08-31" and "2025-08-31T04:00:00.000Z"
+            const eventDateStr = event.date.split('T')[0]; // Extract date part
+            return eventDateStr === dateStr;
+        });
 
         if (dayEvents.length === 0) {
             dayEventsContainer.innerHTML = '<p class="no-events">No events for this day</p>';
@@ -527,7 +537,7 @@ async function handleEventSubmit(e) {
             showNotification(editingEventId ? 'Event updated successfully' : 'Event created successfully', 'success');
             
             // Reload events from server to ensure data consistency
-            await loadEvents();
+            await loadEvents(true); // Skip render since we already rendered above
         } else {
             throw new Error(responseData.error || 'Failed to save event');
         }
@@ -562,7 +572,7 @@ async function handleDeleteEvent() {
             showNotification('Event deleted successfully', 'success');
             
             // Reload events from server to ensure data consistency
-            await loadEvents();
+            await loadEvents(true); // Skip render since we already rendered above
         } else {
             throw new Error(responseData.error || 'Failed to delete event');
         }
@@ -572,14 +582,16 @@ async function handleDeleteEvent() {
     }
 }
 
-async function loadEvents() {
+async function loadEvents(skipRender = false) {
     try {
         const response = await fetch('/api/events?userId=default');
         if (response.ok) {
             const data = await response.json();
             events = data.events || [];
-            // Re-render calendar after loading events
-            renderCalendar();
+            // Only re-render if not explicitly skipped
+            if (!skipRender) {
+                renderCalendar();
+            }
         } else {
             console.warn('Failed to load events:', response.status);
             events = []; // Use empty array as fallback
