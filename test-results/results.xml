@@ -1,114 +1,131 @@
-<testsuites id="" name="" tests="2" failures="0" skipped="0" errors="0" time="28.698001">
-<testsuite name="test-serverless-fix.spec.js" timestamp="2025-08-31T01:58:40.139Z" hostname="chrome" tests="1" failures="0" skipped="0" time="17.645" errors="0">
-<testcase name="verify Neon serverless fix is working" classname="test-serverless-fix.spec.js" time="17.645">
+<testsuites id="" name="" tests="2" failures="2" skipped="0" errors="0" time="50.55720899999999">
+<testsuite name="calendar-functionality.spec.js" timestamp="2025-08-31T02:29:51.732Z" hostname="chrome" tests="1" failures="1" skipped="0" time="30.616" errors="0">
+<testcase name="calendar page functionality and event management" classname="calendar-functionality.spec.js" time="30.616">
+<failure message="calendar-functionality.spec.js:3:1 calendar page functionality and event management" type="FAILURE">
+<![CDATA[  [chrome] › calendar-functionality.spec.js:3:1 › calendar page functionality and event management ─
+
+    Test timeout of 30000ms exceeded.
+
+    Error Context: ../test-results/calendar-functionality-cal-68d8d-nality-and-event-management-chrome/error-context.md
+]]>
+</failure>
 <system-out>
-<![CDATA[🔧 Testing Neon serverless fixes on: https://daily-vibes-flax.vercel.app
+<![CDATA[📅 Testing calendar page on: https://daily-vibes-flax.vercel.app
+🏠 Main page loaded, testing calendar navigation...
+✅ Calendar navigation found, clicking...
+Current URL: https://daily-vibes-flax.vercel.app/calendar.html
+✅ Successfully navigated to calendar page
 
-🏥 Testing health endpoint...
-Health check result: {
-  "status": 200,
-  "data": {
-    "status": "healthy",
-    "timestamp": "2025-08-31T01:58:49.624Z",
-    "services": {
-      "database": true,
-      "encryption": true,
-      "userManager": true
-    }
-  }
-}
-✅ Health check passed
-✅ UI loaded successfully
+🗓️ Testing calendar layout...
+   calendarGrid: ✅ (1)
+   calendarDays: ✅ (1)
+   currentMonth: ✅ (1)
+   addEventBtn: ✅ (1)
+   prevMonthBtn: ✅ (1)
+   nextMonthBtn: ✅ (1)
+   todayBtn: ✅ (1)
+✅ Calendar layout complete
 
-📝 Testing task creation API directly...
-API test result: {
-  "status": 200,
-  "statusText": "",
-  "data": {
-    "success": true,
-    "task": {
-      "id": "mez1kzbt2b25rk7jule",
-      "user_id": "default",
-      "title": "Serverless Fix Test",
-      "description": "Testing if Neon serverless driver is working",
-      "priority": "high",
-      "category": "test",
-      "status": "todo",
-      "due_date": null,
-      "due_time": null,
-      "due_datetime": null,
-      "created_at": "2025-08-31T01:58:57.500Z",
-      "updated_at": "2025-08-31T01:58:57.500Z"
-    }
-  }
-}
+📆 Testing month navigation...
+Current month: August 2025
+After next click: September 2025
+✅ Month navigation working
+Today highlighted: ✅ (1 cells)
 
-🎉 SUCCESS! Neon serverless API is now working!
-✅ Database connection: Working
-✅ Task creation: Working
-✅ Serverless functions: Working
+➕ Testing event creation...
+Event modal opened: ✅
+✅ Event form filled
+💾 Submitting event...
+   📡 API REQUEST: POST https://daily-vibes-flax.vercel.app/api/events
+   📨 API RESPONSE: 200 
+   📨 API RESPONSE: 200 
+   📡 API REQUEST: GET https://daily-vibes-flax.vercel.app/api/events
+   📨 API RESPONSE: 200 
 
-🖱️ Testing UI task creation...
-✅ UI task creation: Working
+📊 EVENT CREATION TEST RESULTS:
+   API Requests: 2
+   API Responses: 3
+   ✅ Event creation API working
+   Modal closed: ❌
 
-🚀 COMPLETE SUCCESS - All systems working!
+📋 Testing day selection and event sidebar...
+   Event sidebar opened: ✅
+   Selected date display: ✅
+   Add event for day button: ✅
+   Sidebar closed: ✅
+
+🔄 Testing navigation back to main app...
+   Back to main page: ✅
+
+🎯 CALENDAR FUNCTIONALITY ASSESSMENT:
+   ✅ Working Features (5): Calendar Layout, Month Navigation, Current Day Highlighting, Event Modal, Event API
+   ❌ Issues (0): 
+
+🎉 SUCCESS! Calendar page fully functional!
+   📅 Large calendar format with current day highlighting
+   🎨 Consistent earth tone theme styling
+   ➕ Event creation and management working
+   📱 Responsive design and navigation
+
+[[ATTACHMENT|calendar-functionality-cal-68d8d-nality-and-event-management-chrome/error-context.md]]
 ]]>
 </system-out>
 </testcase>
 </testsuite>
-<testsuite name="test-serverless-fix.spec.js" timestamp="2025-08-31T01:58:40.139Z" hostname="performance" tests="1" failures="0" skipped="0" time="20.256" errors="0">
-<testcase name="verify Neon serverless fix is working" classname="test-serverless-fix.spec.js" time="20.256">
+<testsuite name="calendar-functionality.spec.js" timestamp="2025-08-31T02:29:51.732Z" hostname="performance" tests="1" failures="1" skipped="0" time="30.562" errors="0">
+<testcase name="calendar page functionality and event management" classname="calendar-functionality.spec.js" time="30.562">
+<failure message="calendar-functionality.spec.js:3:1 calendar page functionality and event management" type="FAILURE">
+<![CDATA[  [performance] › calendar-functionality.spec.js:3:1 › calendar page functionality and event management 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.waitForTimeout: Test timeout of 30000ms exceeded.
+
+      140 |   console.log('💾 Submitting event...');
+      141 |   await page.click('#saveEvent');
+    > 142 |   await page.waitForTimeout(5000);
+          |              ^
+      143 |   
+      144 |   console.log('\n📊 EVENT CREATION TEST RESULTS:');
+      145 |   console.log(`   API Requests: ${requests.length}`);
+        at /Users/user/Desktop/daily-vibe/tests/calendar-functionality.spec.js:142:14
+
+    Error Context: ../test-results/calendar-functionality-cal-68d8d-nality-and-event-management-performance/error-context.md
+]]>
+</failure>
 <system-out>
-<![CDATA[🔧 Testing Neon serverless fixes on: https://daily-vibes-flax.vercel.app
+<![CDATA[📅 Testing calendar page on: https://daily-vibes-flax.vercel.app
+🏠 Main page loaded, testing calendar navigation...
+✅ Calendar navigation found, clicking...
+Current URL: https://daily-vibes-flax.vercel.app/calendar.html
+✅ Successfully navigated to calendar page
 
-🏥 Testing health endpoint...
-Health check result: {
-  "status": 200,
-  "data": {
-    "status": "healthy",
-    "timestamp": "2025-08-31T01:58:49.688Z",
-    "services": {
-      "database": true,
-      "encryption": true,
-      "userManager": true
-    }
-  }
-}
-✅ Health check passed
-✅ UI loaded successfully
+🗓️ Testing calendar layout...
+   calendarGrid: ✅ (1)
+   calendarDays: ✅ (1)
+   currentMonth: ✅ (1)
+   addEventBtn: ✅ (1)
+   prevMonthBtn: ✅ (1)
+   nextMonthBtn: ✅ (1)
+   todayBtn: ✅ (1)
+✅ Calendar layout complete
 
-📝 Testing task creation API directly...
-API test result: {
-  "status": 200,
-  "statusText": "",
-  "data": {
-    "success": true,
-    "task": {
-      "id": "mez1l163jbzghu0iu69",
-      "user_id": "default",
-      "title": "Serverless Fix Test",
-      "description": "Testing if Neon serverless driver is working",
-      "priority": "high",
-      "category": "test",
-      "status": "todo",
-      "due_date": null,
-      "due_time": null,
-      "due_datetime": null,
-      "created_at": "2025-08-31T01:58:59.886Z",
-      "updated_at": "2025-08-31T01:58:59.886Z"
-    }
-  }
-}
+📆 Testing month navigation...
+Current month: August 2025
+After next click: September 2025
+✅ Month navigation working
+Today highlighted: ✅ (1 cells)
 
-🎉 SUCCESS! Neon serverless API is now working!
-✅ Database connection: Working
-✅ Task creation: Working
-✅ Serverless functions: Working
+➕ Testing event creation...
+Event modal opened: ✅
+✅ Event form filled
+💾 Submitting event...
+   📡 API REQUEST: POST https://daily-vibes-flax.vercel.app/api/events
+   📨 API RESPONSE: 200 
+   📡 API REQUEST: GET https://daily-vibes-flax.vercel.app/api/events
+   📨 API RESPONSE: 200 
 
-🖱️ Testing UI task creation...
-✅ UI task creation: Working
-
-🚀 COMPLETE SUCCESS - All systems working!
+[[ATTACHMENT|calendar-functionality-cal-68d8d-nality-and-event-management-performance/error-context.md]]
 ]]>
 </system-out>
 </testcase>

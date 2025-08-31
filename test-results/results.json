@@ -86,14 +86,14 @@
   },
   "suites": [
     {
-      "title": "test-serverless-fix.spec.js",
-      "file": "test-serverless-fix.spec.js",
+      "title": "calendar-functionality.spec.js",
+      "file": "calendar-functionality.spec.js",
       "column": 0,
       "line": 0,
       "specs": [
         {
-          "title": "verify Neon serverless fix is working",
-          "ok": true,
+          "title": "calendar page functionality and event management",
+          "ok": false,
           "tags": [],
           "tests": [
             {
@@ -106,71 +106,187 @@
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 17645,
-                  "errors": [],
+                  "status": "timedOut",
+                  "duration": 30616,
+                  "error": {
+                    "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                    "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                  },
+                  "errors": [
+                    {
+                      "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                    }
+                  ],
                   "stdout": [
                     {
-                      "text": "🔧 Testing Neon serverless fixes on: https://daily-vibes-flax.vercel.app\n"
+                      "text": "📅 Testing calendar page on: https://daily-vibes-flax.vercel.app\n"
                     },
                     {
-                      "text": "\n🏥 Testing health endpoint...\n"
+                      "text": "🏠 Main page loaded, testing calendar navigation...\n"
                     },
                     {
-                      "text": "Health check result: {\n  \"status\": 200,\n  \"data\": {\n    \"status\": \"healthy\",\n    \"timestamp\": \"2025-08-31T01:58:49.624Z\",\n    \"services\": {\n      \"database\": true,\n      \"encryption\": true,\n      \"userManager\": true\n    }\n  }\n}\n"
+                      "text": "✅ Calendar navigation found, clicking...\n"
                     },
                     {
-                      "text": "✅ Health check passed\n"
+                      "text": "Current URL: https://daily-vibes-flax.vercel.app/calendar.html\n"
                     },
                     {
-                      "text": "✅ UI loaded successfully\n"
+                      "text": "✅ Successfully navigated to calendar page\n"
                     },
                     {
-                      "text": "\n📝 Testing task creation API directly...\n"
+                      "text": "\n🗓️ Testing calendar layout...\n"
                     },
                     {
-                      "text": "API test result: {\n  \"status\": 200,\n  \"statusText\": \"\",\n  \"data\": {\n    \"success\": true,\n    \"task\": {\n      \"id\": \"mez1kzbt2b25rk7jule\",\n      \"user_id\": \"default\",\n      \"title\": \"Serverless Fix Test\",\n      \"description\": \"Testing if Neon serverless driver is working\",\n      \"priority\": \"high\",\n      \"category\": \"test\",\n      \"status\": \"todo\",\n      \"due_date\": null,\n      \"due_time\": null,\n      \"due_datetime\": null,\n      \"created_at\": \"2025-08-31T01:58:57.500Z\",\n      \"updated_at\": \"2025-08-31T01:58:57.500Z\"\n    }\n  }\n}\n"
+                      "text": "   calendarGrid: ✅ (1)\n"
                     },
                     {
-                      "text": "\n🎉 SUCCESS! Neon serverless API is now working!\n"
+                      "text": "   calendarDays: ✅ (1)\n"
                     },
                     {
-                      "text": "✅ Database connection: Working\n"
+                      "text": "   currentMonth: ✅ (1)\n"
                     },
                     {
-                      "text": "✅ Task creation: Working\n"
+                      "text": "   addEventBtn: ✅ (1)\n"
                     },
                     {
-                      "text": "✅ Serverless functions: Working\n"
+                      "text": "   prevMonthBtn: ✅ (1)\n"
                     },
                     {
-                      "text": "\n🖱️ Testing UI task creation...\n"
+                      "text": "   nextMonthBtn: ✅ (1)\n"
                     },
                     {
-                      "text": "✅ UI task creation: Working\n"
+                      "text": "   todayBtn: ✅ (1)\n"
                     },
                     {
-                      "text": "\n🚀 COMPLETE SUCCESS - All systems working!\n"
+                      "text": "✅ Calendar layout complete\n"
+                    },
+                    {
+                      "text": "\n📆 Testing month navigation...\n"
+                    },
+                    {
+                      "text": "Current month: August 2025\n"
+                    },
+                    {
+                      "text": "After next click: September 2025\n"
+                    },
+                    {
+                      "text": "✅ Month navigation working\n"
+                    },
+                    {
+                      "text": "Today highlighted: ✅ (1 cells)\n"
+                    },
+                    {
+                      "text": "\n➕ Testing event creation...\n"
+                    },
+                    {
+                      "text": "Event modal opened: ✅\n"
+                    },
+                    {
+                      "text": "✅ Event form filled\n"
+                    },
+                    {
+                      "text": "💾 Submitting event...\n"
+                    },
+                    {
+                      "text": "   📡 API REQUEST: POST https://daily-vibes-flax.vercel.app/api/events\n"
+                    },
+                    {
+                      "text": "   📨 API RESPONSE: 200 \n"
+                    },
+                    {
+                      "text": "   📨 API RESPONSE: 200 \n"
+                    },
+                    {
+                      "text": "   📡 API REQUEST: GET https://daily-vibes-flax.vercel.app/api/events\n"
+                    },
+                    {
+                      "text": "   📨 API RESPONSE: 200 \n"
+                    },
+                    {
+                      "text": "\n📊 EVENT CREATION TEST RESULTS:\n"
+                    },
+                    {
+                      "text": "   API Requests: 2\n"
+                    },
+                    {
+                      "text": "   API Responses: 3\n"
+                    },
+                    {
+                      "text": "   ✅ Event creation API working\n"
+                    },
+                    {
+                      "text": "   Modal closed: ❌\n"
+                    },
+                    {
+                      "text": "\n📋 Testing day selection and event sidebar...\n"
+                    },
+                    {
+                      "text": "   Event sidebar opened: ✅\n"
+                    },
+                    {
+                      "text": "   Selected date display: ✅\n"
+                    },
+                    {
+                      "text": "   Add event for day button: ✅\n"
+                    },
+                    {
+                      "text": "   Sidebar closed: ✅\n"
+                    },
+                    {
+                      "text": "\n🔄 Testing navigation back to main app...\n"
+                    },
+                    {
+                      "text": "   Back to main page: ✅\n"
+                    },
+                    {
+                      "text": "\n🎯 CALENDAR FUNCTIONALITY ASSESSMENT:\n"
+                    },
+                    {
+                      "text": "   ✅ Working Features (5): Calendar Layout, Month Navigation, Current Day Highlighting, Event Modal, Event API\n"
+                    },
+                    {
+                      "text": "   ❌ Issues (0): \n"
+                    },
+                    {
+                      "text": "\n🎉 SUCCESS! Calendar page fully functional!\n"
+                    },
+                    {
+                      "text": "   📅 Large calendar format with current day highlighting\n"
+                    },
+                    {
+                      "text": "   🎨 Consistent earth tone theme styling\n"
+                    },
+                    {
+                      "text": "   ➕ Event creation and management working\n"
+                    },
+                    {
+                      "text": "   📱 Responsive design and navigation\n"
                     }
                   ],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2025-08-31T01:58:42.946Z",
+                  "startTime": "2025-08-31T02:29:54.140Z",
                   "annotations": [],
-                  "attachments": []
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/user/Desktop/daily-vibe/test-results/calendar-functionality-cal-68d8d-nality-and-event-management-chrome/error-context.md"
+                    }
+                  ]
                 }
               ],
-              "status": "expected"
+              "status": "unexpected"
             }
           ],
-          "id": "dec64e8b15ae8395280e-78f6539f1e8fee1df24c",
-          "file": "test-serverless-fix.spec.js",
+          "id": "95a1268263370304ed0a-fe2c8c8a4dbb1043db2a",
+          "file": "calendar-functionality.spec.js",
           "line": 3,
           "column": 1
         },
         {
-          "title": "verify Neon serverless fix is working",
-          "ok": true,
+          "title": "calendar page functionality and event management",
+          "ok": false,
           "tags": [],
           "tests": [
             {
@@ -183,65 +299,126 @@
                 {
                   "workerIndex": 1,
                   "parallelIndex": 1,
-                  "status": "passed",
-                  "duration": 20256,
-                  "errors": [],
+                  "status": "timedOut",
+                  "duration": 30562,
+                  "error": {
+                    "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                    "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                  },
+                  "errors": [
+                    {
+                      "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                    },
+                    {
+                      "location": {
+                        "file": "/Users/user/Desktop/daily-vibe/tests/calendar-functionality.spec.js",
+                        "column": 14,
+                        "line": 142
+                      },
+                      "message": "Error: page.waitForTimeout: Test timeout of 30000ms exceeded.\n\n  140 |   console.log('💾 Submitting event...');\n  141 |   await page.click('#saveEvent');\n> 142 |   await page.waitForTimeout(5000);\n      |              ^\n  143 |   \n  144 |   console.log('\\n📊 EVENT CREATION TEST RESULTS:');\n  145 |   console.log(`   API Requests: ${requests.length}`);\n    at /Users/user/Desktop/daily-vibe/tests/calendar-functionality.spec.js:142:14"
+                    }
+                  ],
                   "stdout": [
                     {
-                      "text": "🔧 Testing Neon serverless fixes on: https://daily-vibes-flax.vercel.app\n"
+                      "text": "📅 Testing calendar page on: https://daily-vibes-flax.vercel.app\n"
                     },
                     {
-                      "text": "\n🏥 Testing health endpoint...\n"
+                      "text": "🏠 Main page loaded, testing calendar navigation...\n"
                     },
                     {
-                      "text": "Health check result: {\n  \"status\": 200,\n  \"data\": {\n    \"status\": \"healthy\",\n    \"timestamp\": \"2025-08-31T01:58:49.688Z\",\n    \"services\": {\n      \"database\": true,\n      \"encryption\": true,\n      \"userManager\": true\n    }\n  }\n}\n"
+                      "text": "✅ Calendar navigation found, clicking...\n"
                     },
                     {
-                      "text": "✅ Health check passed\n"
+                      "text": "Current URL: https://daily-vibes-flax.vercel.app/calendar.html\n"
                     },
                     {
-                      "text": "✅ UI loaded successfully\n"
+                      "text": "✅ Successfully navigated to calendar page\n"
                     },
                     {
-                      "text": "\n📝 Testing task creation API directly...\n"
+                      "text": "\n🗓️ Testing calendar layout...\n"
                     },
                     {
-                      "text": "API test result: {\n  \"status\": 200,\n  \"statusText\": \"\",\n  \"data\": {\n    \"success\": true,\n    \"task\": {\n      \"id\": \"mez1l163jbzghu0iu69\",\n      \"user_id\": \"default\",\n      \"title\": \"Serverless Fix Test\",\n      \"description\": \"Testing if Neon serverless driver is working\",\n      \"priority\": \"high\",\n      \"category\": \"test\",\n      \"status\": \"todo\",\n      \"due_date\": null,\n      \"due_time\": null,\n      \"due_datetime\": null,\n      \"created_at\": \"2025-08-31T01:58:59.886Z\",\n      \"updated_at\": \"2025-08-31T01:58:59.886Z\"\n    }\n  }\n}\n"
+                      "text": "   calendarGrid: ✅ (1)\n"
                     },
                     {
-                      "text": "\n🎉 SUCCESS! Neon serverless API is now working!\n"
+                      "text": "   calendarDays: ✅ (1)\n"
                     },
                     {
-                      "text": "✅ Database connection: Working\n"
+                      "text": "   currentMonth: ✅ (1)\n"
                     },
                     {
-                      "text": "✅ Task creation: Working\n"
+                      "text": "   addEventBtn: ✅ (1)\n"
                     },
                     {
-                      "text": "✅ Serverless functions: Working\n"
+                      "text": "   prevMonthBtn: ✅ (1)\n"
                     },
                     {
-                      "text": "\n🖱️ Testing UI task creation...\n"
+                      "text": "   nextMonthBtn: ✅ (1)\n"
                     },
                     {
-                      "text": "✅ UI task creation: Working\n"
+                      "text": "   todayBtn: ✅ (1)\n"
                     },
                     {
-                      "text": "\n🚀 COMPLETE SUCCESS - All systems working!\n"
+                      "text": "✅ Calendar layout complete\n"
+                    },
+                    {
+                      "text": "\n📆 Testing month navigation...\n"
+                    },
+                    {
+                      "text": "Current month: August 2025\n"
+                    },
+                    {
+                      "text": "After next click: September 2025\n"
+                    },
+                    {
+                      "text": "✅ Month navigation working\n"
+                    },
+                    {
+                      "text": "Today highlighted: ✅ (1 cells)\n"
+                    },
+                    {
+                      "text": "\n➕ Testing event creation...\n"
+                    },
+                    {
+                      "text": "Event modal opened: ✅\n"
+                    },
+                    {
+                      "text": "✅ Event form filled\n"
+                    },
+                    {
+                      "text": "💾 Submitting event...\n"
+                    },
+                    {
+                      "text": "   📡 API REQUEST: POST https://daily-vibes-flax.vercel.app/api/events\n"
+                    },
+                    {
+                      "text": "   📨 API RESPONSE: 200 \n"
+                    },
+                    {
+                      "text": "   📡 API REQUEST: GET https://daily-vibes-flax.vercel.app/api/events\n"
+                    },
+                    {
+                      "text": "   📨 API RESPONSE: 200 \n"
                     }
                   ],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2025-08-31T01:58:42.656Z",
+                  "startTime": "2025-08-31T02:29:54.314Z",
                   "annotations": [],
-                  "attachments": []
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/user/Desktop/daily-vibe/test-results/calendar-functionality-cal-68d8d-nality-and-event-management-performance/error-context.md"
+                    }
+                  ]
                 }
               ],
-              "status": "expected"
+              "status": "unexpected"
             }
           ],
-          "id": "dec64e8b15ae8395280e-1fac5702ae36f04566f0",
-          "file": "test-serverless-fix.spec.js",
+          "id": "95a1268263370304ed0a-28e8944b61cc213d3fd2",
+          "file": "calendar-functionality.spec.js",
           "line": 3,
           "column": 1
         }
@@ -250,11 +427,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2025-08-31T01:58:37.626Z",
-    "duration": 28698.001,
-    "expected": 2,
+    "startTime": "2025-08-31T02:29:38.874Z",
+    "duration": 50557.208999999995,
+    "expected": 0,
     "skipped": 0,
-    "unexpected": 0,
+    "unexpected": 2,
     "flaky": 0
   }
 }

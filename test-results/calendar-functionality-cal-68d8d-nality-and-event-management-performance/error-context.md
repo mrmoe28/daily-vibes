@@ -1,0 +1,146 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e5]:
+        - generic [ref=e6]: 
+        - generic [ref=e7]: Calendar
+      - navigation [ref=e8]:
+        - link " Tasks" [ref=e9] [cursor=pointer]:
+          - /url: index.html
+          - generic [ref=e10] [cursor=pointer]: 
+          - generic [ref=e11] [cursor=pointer]: Tasks
+        - link " Calendar" [ref=e12] [cursor=pointer]:
+          - /url: calendar.html
+          - generic [ref=e13] [cursor=pointer]: 
+          - generic [ref=e14] [cursor=pointer]: Calendar
+      - button "+ New Event" [ref=e16] [cursor=pointer]:
+        - generic [ref=e17] [cursor=pointer]: +
+        - generic [ref=e18] [cursor=pointer]: New Event
+    - main [ref=e19]:
+      - generic [ref=e20]:
+        - generic [ref=e21]:
+          - button "" [ref=e22]:
+            - generic [ref=e23]: 
+          - heading "Calendar Events" [level=1] [ref=e24]
+        - generic [ref=e26]:
+          - button "" [ref=e27]:
+            - generic [ref=e28]: 
+          - heading "August 2025" [level=2] [ref=e29]
+          - button "" [ref=e30]:
+            - generic [ref=e31]: 
+          - button "Today" [ref=e32] [cursor=pointer]
+      - generic [ref=e34]:
+        - generic [ref=e35]:
+          - generic [ref=e36]: Sun
+          - generic [ref=e37]: Mon
+          - generic [ref=e38]: Tue
+          - generic [ref=e39]: Wed
+          - generic [ref=e40]: Thu
+          - generic [ref=e41]: Fri
+          - generic [ref=e42]: Sat
+        - generic [ref=e43]:
+          - generic [ref=e45] [cursor=pointer]: "27"
+          - generic [ref=e47] [cursor=pointer]: "28"
+          - generic [ref=e49] [cursor=pointer]: "29"
+          - generic [ref=e51] [cursor=pointer]: "30"
+          - generic [ref=e53] [cursor=pointer]: "31"
+          - generic [ref=e55] [cursor=pointer]: "1"
+          - generic [ref=e57] [cursor=pointer]: "2"
+          - generic [ref=e59] [cursor=pointer]: "3"
+          - generic [ref=e61] [cursor=pointer]: "4"
+          - generic [ref=e63] [cursor=pointer]: "5"
+          - generic [ref=e65] [cursor=pointer]: "6"
+          - generic [ref=e67] [cursor=pointer]: "7"
+          - generic [ref=e69] [cursor=pointer]: "8"
+          - generic [ref=e71] [cursor=pointer]: "9"
+          - generic [ref=e73] [cursor=pointer]: "10"
+          - generic [ref=e75] [cursor=pointer]: "11"
+          - generic [ref=e77] [cursor=pointer]: "12"
+          - generic [ref=e79] [cursor=pointer]: "13"
+          - generic [ref=e81] [cursor=pointer]: "14"
+          - generic [ref=e83] [cursor=pointer]: "15"
+          - generic [ref=e85] [cursor=pointer]: "16"
+          - generic [ref=e87] [cursor=pointer]: "17"
+          - generic [ref=e89] [cursor=pointer]: "18"
+          - generic [ref=e91] [cursor=pointer]: "19"
+          - generic [ref=e93] [cursor=pointer]: "20"
+          - generic [ref=e95] [cursor=pointer]: "21"
+          - generic [ref=e97] [cursor=pointer]: "22"
+          - generic [ref=e99] [cursor=pointer]: "23"
+          - generic [ref=e101] [cursor=pointer]: "24"
+          - generic [ref=e103] [cursor=pointer]: "25"
+          - generic [ref=e105] [cursor=pointer]: "26"
+          - generic [ref=e107] [cursor=pointer]: "27"
+          - generic [ref=e109] [cursor=pointer]: "28"
+          - generic [ref=e111] [cursor=pointer]: "29"
+          - generic [ref=e113] [cursor=pointer]: "30"
+          - generic [ref=e115] [cursor=pointer]: "31"
+          - generic [ref=e117] [cursor=pointer]: "1"
+          - generic [ref=e119] [cursor=pointer]: "2"
+          - generic [ref=e121] [cursor=pointer]: "3"
+          - generic [ref=e123] [cursor=pointer]: "4"
+          - generic [ref=e125] [cursor=pointer]: "5"
+          - generic [ref=e127] [cursor=pointer]: "6"
+    - complementary [ref=e128]:
+      - generic [ref=e129]:
+        - heading "Event Details" [level=3] [ref=e130]
+        - button "" [ref=e131]:
+          - generic [ref=e132]: 
+      - button "+ Add Event for This Day" [ref=e135] [cursor=pointer]:
+        - generic [ref=e136] [cursor=pointer]: +
+        - text: Add Event for This Day
+  - generic [ref=e138]:
+    - generic [ref=e139]:
+      - heading "Add New Event" [level=2] [ref=e140]
+      - button "" [ref=e141] [cursor=pointer]:
+        - generic [ref=e142] [cursor=pointer]: 
+    - generic [ref=e143]:
+      - generic [ref=e144]:
+        - generic [ref=e145]: Event Title *
+        - textbox "Event Title *" [ref=e146]: Test Calendar Event
+      - generic [ref=e147]:
+        - generic [ref=e148]: Description
+        - textbox "Description" [ref=e149]: Testing calendar event creation
+      - generic [ref=e150]:
+        - generic [ref=e151]:
+          - generic [ref=e152]: Date *
+          - textbox "Date *" [ref=e153]: 2025-08-30
+        - generic [ref=e154]:
+          - generic [ref=e155]: Time
+          - textbox "Time" [ref=e156]: 10:00
+      - generic [ref=e157]:
+        - generic [ref=e158]:
+          - generic [ref=e159]: Event Type
+          - combobox "Event Type" [ref=e160]:
+            - option "Meeting" [selected]
+            - option "Appointment"
+            - option "Reminder"
+            - option "Birthday"
+            - option "Holiday"
+            - option "Other"
+        - generic [ref=e161]:
+          - generic [ref=e162]: Color
+          - combobox "Color" [ref=e163]:
+            - option "Blue"
+            - option "Green" [selected]
+            - option "Purple"
+            - option "Red"
+            - option "Yellow"
+            - option "Pink"
+      - generic [ref=e164]:
+        - generic [ref=e165]: Location
+        - textbox "Location" [ref=e166]: Test Location
+      - generic [ref=e168] [cursor=pointer]:
+        - checkbox "All day event" [ref=e169] [cursor=pointer]
+        - generic [ref=e170] [cursor=pointer]: All day event
+      - generic [ref=e172] [cursor=pointer]:
+        - checkbox "Recurring event" [ref=e173] [cursor=pointer]
+        - generic [ref=e174] [cursor=pointer]: Recurring event
+    - generic [ref=e175]:
+      - button "Cancel" [ref=e176] [cursor=pointer]
+      - button "Save Event" [active] [ref=e177] [cursor=pointer]
+  - generic [ref=e178]: Event created successfully
+```
