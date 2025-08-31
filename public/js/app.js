@@ -1895,7 +1895,10 @@ class TaskFlowApp {
         
         const upcomingEvents = events.filter(event => {
             const eventDate = new Date(event.date);
-            return eventDate >= today;
+            // Handle timezone issues by comparing just the date parts
+            const eventDateOnly = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+            const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            return eventDateOnly >= todayDateOnly;
         }).sort((a, b) => new Date(a.date) - new Date(b.date));
 
         // Show only the next 5 events
@@ -2230,6 +2233,11 @@ class AIChatWidget {
         
         this.initializeElements();
         this.setupEventListeners();
+        
+        // Auto-open the chat widget when page loads
+        setTimeout(() => {
+            this.openChat();
+        }, 1000); // Wait 1 second after page load
     }
 
     initializeElements() {
@@ -2376,6 +2384,14 @@ class AIChatWidget {
                     this.handleAction(data.action, data.data, data.actionResult);
                 }
 
+                // If an event was created, force calendar refresh
+                if (data.action === 'EVENT_CREATED' && window.app) {
+                    setTimeout(() => {
+                        console.log('AI: Force refreshing calendar after event creation');
+                        window.app.loadUpcomingEvents();
+                    }, 500);
+                }
+
                 // Update status
                 this.updateStatus('Ready to help');
                 
@@ -2498,8 +2514,8 @@ class AIChatWidget {
     }
 
     showEventCreatedNotification(data) {
-        // Refresh the calendar view if it's visible
-        if (window.app && window.app.currentPage === 'dashboard') {
+        // Always refresh the calendar view
+        if (window.app) {
             window.app.loadUpcomingEvents();
         }
         
