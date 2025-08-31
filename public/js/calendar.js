@@ -199,11 +199,46 @@ function createDayElement(day, isOtherMonth, isToday) {
                 const eventsPreview = document.createElement('div');
                 eventsPreview.className = 'day-events-preview';
                 
-                dayEvents.slice(0, 3).forEach(event => {
-                    const eventDot = document.createElement('div');
-                    eventDot.className = `event-dot ${event.color || 'blue'}`;
-                    eventsPreview.appendChild(eventDot);
+                // Show first 2 events as preview cards, rest as dots
+                dayEvents.slice(0, 2).forEach(event => {
+                    const eventPreview = document.createElement('div');
+                    eventPreview.className = `event-preview ${event.color || 'blue'}`;
+                    
+                    const eventTitle = document.createElement('div');
+                    eventTitle.className = 'event-preview-title';
+                    eventTitle.textContent = event.title || 'Untitled Event';
+                    eventPreview.appendChild(eventTitle);
+                    
+                    if (event.time) {
+                        const eventTime = document.createElement('div');
+                        eventTime.className = 'event-preview-time';
+                        eventTime.textContent = formatTime(event.time);
+                        eventPreview.appendChild(eventTime);
+                    }
+                    
+                    // Add click handler to event preview
+                    eventPreview.addEventListener('click', (e) => {
+                        e.stopPropagation(); // Prevent day selection
+                        editEvent(event);
+                    });
+                    
+                    eventsPreview.appendChild(eventPreview);
                 });
+                
+                // If more than 2 events, show count with click handler
+                if (dayEvents.length > 2) {
+                    const moreEvents = document.createElement('div');
+                    moreEvents.className = 'more-events';
+                    moreEvents.textContent = `+${dayEvents.length - 2} more`;
+                    
+                    // Add click handler to show all events for the day
+                    moreEvents.addEventListener('click', (e) => {
+                        e.stopPropagation(); // Prevent day selection
+                        selectDate(currentYear, currentMonth, day);
+                    });
+                    
+                    eventsPreview.appendChild(moreEvents);
+                }
                 
                 dayDiv.appendChild(eventsPreview);
             }
@@ -418,13 +453,29 @@ async function handleEventSubmit(e) {
         const responseData = await response.json();
         
         if (response.ok && responseData.success) {
+            // Add the new/updated event to local events array for immediate preview
+            if (editingEventId) {
+                // Update existing event
+                const eventIndex = events.findIndex(e => e.id === editingEventId);
+                if (eventIndex !== -1) {
+                    events[eventIndex] = { ...eventData, id: editingEventId };
+                }
+            } else {
+                // Add new event (use timestamp as temporary ID)
+                const newEvent = { ...eventData, id: responseData.event?.id || Date.now() };
+                events.push(newEvent);
+            }
+            
             closeEventModal();
-            await loadEvents();
-            renderCalendar();
+            renderCalendar(); // Re-render to show event preview immediately
+            
             if (selectedDate) {
                 displayDayEvents(selectedDate);
             }
             showNotification(editingEventId ? 'Event updated successfully' : 'Event created successfully', 'success');
+            
+            // Reload events from server to ensure data consistency
+            await loadEvents();
         } else {
             throw new Error(responseData.error || 'Failed to save event');
         }
@@ -447,13 +498,19 @@ async function handleDeleteEvent() {
         const responseData = await response.json();
 
         if (response.ok && responseData.success) {
+            // Remove event from local array for immediate UI update
+            events = events.filter(event => event.id !== editingEventId);
+            
             closeEventModal();
-            await loadEvents();
-            renderCalendar();
+            renderCalendar(); // Re-render to remove event preview immediately
+            
             if (selectedDate) {
                 displayDayEvents(selectedDate);
             }
             showNotification('Event deleted successfully', 'success');
+            
+            // Reload events from server to ensure data consistency
+            await loadEvents();
         } else {
             throw new Error(responseData.error || 'Failed to delete event');
         }
@@ -513,6 +570,29 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// Helper function to format time for display
+function formatTime(timeString) {
+    if (!timeString) return '';
+    
+    try {
+        const [hours, minutes] = timeString.split(':');
+        const hour = parseInt(hours, 10);
+        const minute = parseInt(minutes, 10);
+        
+        if (hour === 0) {
+            return `12:${minute.toString().padStart(2, '0')} AM`;
+        } else if (hour < 12) {
+            return `${hour}:${minute.toString().padStart(2, '0')} AM`;
+        } else if (hour === 12) {
+            return `12:${minute.toString().padStart(2, '0')} PM`;
+        } else {
+            return `${hour - 12}:${minute.toString().padStart(2, '0')} PM`;
+        }
+    } catch (error) {
+        return timeString; // Return original if parsing fails
+    }
 }
 
 // Global modal functions for onclick handlers
