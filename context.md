@@ -1,5 +1,19 @@
 # TaskFlow - Daily Vibes Context Documentation
 
+## Recent Debugging Context
+
+### Task Saving Issue Status
+The recent debugging focused on tasks not appearing after save:
+
+**Fixed Issues:**
+- ✅ Database schema: Removed foreign key constraint from tasks table  
+- ✅ API endpoints: `/api/tasks` POST and GET are working  
+- ✅ Backend connection: Server connects to Neon database successfully  
+- ✅ Static files: Vercel deployment serves CSS/JS correctly
+
+**Issue Resolution:**
+Tasks are now properly saved to the PostgreSQL database and retrieved correctly. The application has been updated to use Neon Database with improved error handling and service initialization.
+
 ## Project Overview
 
 TaskFlow (daily-vibes) is a modern, full-stack task management application with a focus on user experience, performance, and scalability. The project combines a robust backend with a sophisticated frontend to deliver a comprehensive task management solution.
@@ -13,13 +27,14 @@ TaskFlow (daily-vibes) is a modern, full-stack task management application with 
 - **Performance Optimized**: Advanced performance optimizations including debouncing, caching, and virtual scrolling
 - **Drag & Drop**: Intuitive task status management through drag and drop interface
 - **Dark Theme**: Modern dark theme with glass morphism effects
+- **Calendar Integration**: Calendar view with event management
 
 ## Technology Stack
 
 ### Backend
 - **Runtime**: Node.js 18+
 - **Framework**: Express.js
-- **Database**: SQLite (development) / PostgreSQL (production)
+- **Database**: Neon PostgreSQL (production) / SQLite (fallback)
 - **Authentication**: JWT + bcrypt for password hashing
 - **File Handling**: Multer for file uploads
 - **Security**: CORS, input validation, encryption services
@@ -36,6 +51,7 @@ TaskFlow (daily-vibes) is a modern, full-stack task management application with 
 ### Dependencies
 ```json
 {
+  "@neondatabase/serverless": "^1.0.1",
   "bcrypt": "^5.1.1",
   "cors": "^2.8.5",
   "express": "^4.18.2",

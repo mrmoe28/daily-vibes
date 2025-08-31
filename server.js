@@ -5,7 +5,7 @@ const path = require('path');
 const fs = require('fs-extra');
 require('dotenv').config();
 
-const { DatabaseService } = require('./lib/database');
+const DatabaseService = require('./lib/database-neon');
 const { EncryptionService } = require('./lib/encryption');
 const { UserManager } = require('./lib/user-manager');
 const { Logger } = require('./lib/logger');
@@ -16,8 +16,13 @@ const PORT = process.env.PORT || 3000;
 
 // Initialize services
 let database, encryption, userManager, logger, configManager;
+let servicesInitialized = false;
 
 async function initializeServices() {
+  if (servicesInitialized) {
+    return;
+  }
+  
   try {
     logger = new Logger();
     configManager = new ConfigManager();
@@ -26,10 +31,22 @@ async function initializeServices() {
     await database.initialize();
     userManager = new UserManager(database, encryption);
     
+    servicesInitialized = true;
     logger.info('All services initialized successfully');
   } catch (error) {
     console.error('Error initializing services:', error);
-    process.exit(1);
+    throw error;
+  }
+}
+
+// Middleware to ensure services are initialized
+async function ensureServices(req, res, next) {
+  try {
+    await initializeServices();
+    next();
+  } catch (error) {
+    console.error('Service initialization failed:', error);
+    res.status(500).json({ error: 'Service initialization failed' });
   }
 }
 
@@ -37,11 +54,24 @@ async function initializeServices() {
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-app.use(express.static('public'));
+
+// Serve static files - works both locally and on Vercel
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/css', express.static(path.join(__dirname, 'public', 'css')));
+app.use('/js', express.static(path.join(__dirname, 'public', 'js')));
 
 // Serve index.html at root
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Explicit routes for static files (fallback for Vercel)
+app.get('/js/app.js', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'js', 'app.js'));
+});
+
+app.get('/css/main.css', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'css', 'main.css'));
 });
 
 // File upload configuration
@@ -65,16 +95,26 @@ const upload = multer({
 // Routes
 
 // Health check
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'healthy', 
-    timestamp: new Date().toISOString(),
-    services: {
-      database: !!database,
-      encryption: !!encryption,
-      userManager: !!userManager
-    }
-  });
+app.get('/api/health', async (req, res) => {
+  try {
+    await initializeServices();
+    const dbHealthy = database ? await database.healthCheck() : false;
+    res.json({ 
+      status: 'healthy', 
+      timestamp: new Date().toISOString(),
+      services: {
+        database: dbHealthy,
+        encryption: !!encryption,
+        userManager: !!userManager
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      status: 'unhealthy', 
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // Authentication endpoints
@@ -169,7 +209,7 @@ app.get('/api/config', (req, res) => {
 // Task Management endpoints
 
 // Create a new task
-app.post('/api/tasks', async (req, res) => {
+app.post('/api/tasks', ensureServices, async (req, res) => {
   try {
     const userId = req.body.userId || 'default';
     const { title, description, priority, category, status, dueDate, dueTime, dueDateTime } = req.body;
@@ -194,15 +234,15 @@ app.post('/api/tasks', async (req, res) => {
     };
 
     const result = await database.createTask(taskData);
-    res.json({ success: true, task: result.rows[0] });
+    res.json({ success: true, task: result });
   } catch (error) {
-    logger.error('Create task error:', error);
-    res.status(500).json({ error: 'Failed to create task' });
+    console.error('Create task error:', error);
+    res.status(500).json({ error: 'Failed to create task', details: error.message });
   }
 });
 
 // Get all tasks for a user
-app.get('/api/tasks', async (req, res) => {
+app.get('/api/tasks', ensureServices, async (req, res) => {
   try {
     const userId = req.query.userId || 'default';
     const status = req.query.status;
@@ -340,6 +380,113 @@ app.delete('/api/tasks/:taskId/attachments/:fileId', async (req, res) => {
   }
 });
 
+// Calendar Event Management endpoints
+
+// Create a new event
+app.post('/api/events', ensureServices, async (req, res) => {
+  try {
+    const userId = req.body.userId || 'default';
+    const { title, description, date, time, type, color, location, allDay, recurring, recurringType } = req.body;
+    
+    if (!title || !date) {
+      return res.status(400).json({ error: 'Event title and date are required' });
+    }
+
+    const eventId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+    
+    const eventData = {
+      id: eventId,
+      userId,
+      title,
+      description,
+      date,
+      time: allDay ? null : time,
+      type: type || 'other',
+      color: color || 'blue',
+      location,
+      allDay: !!allDay,
+      recurring: !!recurring,
+      recurringType
+    };
+
+    const result = await database.createEvent(eventData);
+    res.json({ success: true, event: result });
+  } catch (error) {
+    console.error('Create event error:', error);
+    res.status(500).json({ error: 'Failed to create event', details: error.message });
+  }
+});
+
+// Get all events for a user
+app.get('/api/events', ensureServices, async (req, res) => {
+  try {
+    const userId = req.query.userId || 'default';
+    const startDate = req.query.startDate;
+    const endDate = req.query.endDate;
+    
+    let events;
+    if (startDate && endDate) {
+      events = await database.getEventsByDateRange(userId, startDate, endDate);
+    } else {
+      events = await database.getUserEvents(userId);
+    }
+    
+    res.json({ success: true, events });
+  } catch (error) {
+    console.error('Get events error:', error);
+    res.status(500).json({ error: 'Failed to retrieve events' });
+  }
+});
+
+// Update an event
+app.put('/api/events/:eventId', ensureServices, async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const updates = req.body;
+    
+    const eventData = {
+      title: updates.title,
+      description: updates.description,
+      date: updates.date,
+      time: updates.allDay ? null : updates.time,
+      type: updates.type || 'other',
+      color: updates.color || 'blue',
+      location: updates.location,
+      allDay: !!updates.allDay,
+      recurring: !!updates.recurring,
+      recurringType: updates.recurringType
+    };
+    
+    const result = await database.updateEvent(eventId, eventData);
+    
+    if (!result) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+    
+    res.json({ success: true, event: result });
+  } catch (error) {
+    console.error('Update event error:', error);
+    res.status(500).json({ error: 'Failed to update event' });
+  }
+});
+
+// Delete an event
+app.delete('/api/events/:eventId', ensureServices, async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const result = await database.deleteEvent(eventId);
+    
+    if (!result) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+    
+    res.json({ success: true, message: 'Event deleted successfully' });
+  } catch (error) {
+    console.error('Delete event error:', error);
+    res.status(500).json({ error: 'Failed to delete event' });
+  }
+});
+
 // Error handling middleware
 app.use((error, req, res, next) => {
   logger.error('Server error:', error);
@@ -351,11 +498,18 @@ app.use('/uploads', express.static('./uploads'));
 
 // Start server
 async function startServer() {
-  await initializeServices();
+  try {
+    await initializeServices();
+  } catch (error) {
+    console.error('Failed to initialize services during startup:', error);
+    // Don't exit in serverless environments, let individual routes handle initialization
+  }
   
   app.listen(PORT, () => {
-    logger.info(`Server running on http://localhost:${PORT}`);
-    logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`\n🚀 Daily Vibe is ready on port ${PORT}!`);
+    console.log('📱 Open your browser to:');
+    console.log(`   http://localhost:${PORT}`);
+    console.log('\n✨ Your task management app is waiting for you!\n');
   });
 }
 

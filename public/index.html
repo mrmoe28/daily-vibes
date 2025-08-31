@@ -130,6 +130,9 @@
 
         .page-header {
             margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .page-title {
@@ -380,6 +383,11 @@
             font-weight: 500;
             color: var(--text-primary);
         }
+        .optional {
+            font-weight: 400;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
 
         .form-input {
             width: 100%;
@@ -532,8 +540,14 @@
         <div id="taskBoard">
             <!-- Page Header -->
             <div class="page-header">
-                <h1 class="page-title">Task Dashboard</h1>
-                <p class="page-subtitle">Manage your tasks and track your progress</p>
+                <div>
+                    <h1 class="page-title">Task Dashboard</h1>
+                    <p class="page-subtitle">Manage your tasks and track your progress</p>
+                </div>
+                <button class="btn btn-primary" id="headerAddTaskBtn">
+                    <i class="fas fa-plus"></i>
+                    Add New Task
+                </button>
             </div>
 
             <!-- Stats Cards -->
@@ -695,13 +709,13 @@
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label" for="taskDueDate">Due Date</label>
-                    <input type="date" id="taskDueDate" name="taskDueDate" class="form-input" required>
+                    <label class="form-label" for="taskDueDate">Due Date <span class="optional">(optional)</span></label>
+                    <input type="date" id="taskDueDate" name="taskDueDate" class="form-input">
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label" for="taskDueTime">Due Time</label>
-                    <input type="time" id="taskDueTime" name="taskDueTime" class="form-input" required>
+                    <label class="form-label" for="taskDueTime">Due Time <span class="optional">(optional)</span></label>
+                    <input type="time" id="taskDueTime" name="taskDueTime" class="form-input">
                 </div>
                 
                 <div class="form-actions">

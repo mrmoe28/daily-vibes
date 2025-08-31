@@ -1,7 +1,7 @@
 {
   "config": {
-    "configFile": "/Users/user/Desktop/daily-vibes-main/playwright.config.js",
-    "rootDir": "/Users/user/Desktop/daily-vibes-main/tests",
+    "configFile": "/Users/user/Desktop/daily-vibe/playwright.config.js",
+    "rootDir": "/Users/user/Desktop/daily-vibe/tests",
     "forbidOnly": false,
     "fullyParallel": false,
     "globalSetup": null,
@@ -39,7 +39,7 @@
     "quiet": false,
     "projects": [
       {
-        "outputDir": "/Users/user/Desktop/daily-vibes-main/test-results",
+        "outputDir": "/Users/user/Desktop/daily-vibe/test-results",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -47,15 +47,15 @@
         },
         "id": "chrome",
         "name": "chrome",
-        "testDir": "/Users/user/Desktop/daily-vibes-main/tests",
+        "testDir": "/Users/user/Desktop/daily-vibe/tests",
         "testIgnore": [],
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
         ],
-        "timeout": 30000
+        "timeout": 45000
       },
       {
-        "outputDir": "/Users/user/Desktop/daily-vibes-main/test-results",
+        "outputDir": "/Users/user/Desktop/daily-vibe/test-results",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -63,12 +63,12 @@
         },
         "id": "performance",
         "name": "performance",
-        "testDir": "/Users/user/Desktop/daily-vibes-main/tests",
+        "testDir": "/Users/user/Desktop/daily-vibe/tests",
         "testIgnore": [],
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
         ],
-        "timeout": 30000
+        "timeout": 45000
       }
     ],
     "shard": null,
@@ -86,105 +86,282 @@
   },
   "suites": [
     {
-      "title": "navigation.spec.js",
-      "file": "navigation.spec.js",
+      "title": "calendar-visual-test.spec.js",
+      "file": "calendar-visual-test.spec.js",
       "column": 0,
       "line": 0,
-      "specs": [],
-      "suites": [
+      "specs": [
         {
-          "title": "TaskFlow - Sidebar Navigation",
-          "file": "navigation.spec.js",
-          "line": 4,
-          "column": 6,
-          "specs": [
+          "title": "visual verification of calendar theme matching dashboard",
+          "ok": true,
+          "tags": [],
+          "tests": [
             {
-              "title": "navigation with JavaScript debugging",
-              "ok": true,
-              "tags": [],
-              "tests": [
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chrome",
+              "projectName": "chrome",
+              "results": [
                 {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chrome",
-                  "projectName": "chrome",
-                  "results": [
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11940,
+                  "errors": [],
+                  "stdout": [
                     {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "interrupted",
-                      "duration": 4457,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-08-30T15:10:55.910Z",
-                      "annotations": [],
-                      "attachments": []
+                      "text": "🎨 Visual verification of calendar theme consistency\n"
+                    },
+                    {
+                      "text": "📅 Calendar page loaded\n"
+                    },
+                    {
+                      "text": "\n🏗️ THEME STRUCTURE:\n"
+                    },
+                    {
+                      "text": "   sidebar: ✅ (1)\n"
+                    },
+                    {
+                      "text": "   calendarGrid: ✅ (1)\n"
+                    },
+                    {
+                      "text": "   mainHeader: ✅ (1)\n"
+                    },
+                    {
+                      "text": "   calendarDays: ✅ (1)\n"
+                    },
+                    {
+                      "text": "   addEventBtn: ✅ (1)\n"
+                    },
+                    {
+                      "text": "   todayCell: ✅ (1)\n"
+                    },
+                    {
+                      "text": "\n🎨 THEME STYLING ANALYSIS:\n"
+                    },
+                    {
+                      "text": "   Dark sidebar: ✅\n"
+                    },
+                    {
+                      "text": "   Dark header: ✅\n"
+                    },
+                    {
+                      "text": "   Glassmorphism effects: ✅\n"
+                    },
+                    {
+                      "text": "   Transparent elements: ✅\n"
+                    },
+                    {
+                      "text": "   Today cell gradient: ✅\n"
+                    },
+                    {
+                      "text": "   Header backdrop blur: ✅\n"
+                    },
+                    {
+                      "text": "   Sidebar backdrop blur: ✅\n"
+                    },
+                    {
+                      "text": "\n📝 Testing modal theme consistency...\n"
+                    },
+                    {
+                      "text": "   Modal dark background: ✅\n"
+                    },
+                    {
+                      "text": "   Modal backdrop blur: ✅\n"
+                    },
+                    {
+                      "text": "   Modal rounded corners: ✅\n"
+                    },
+                    {
+                      "text": "   Modal border styling: ✅\n"
+                    },
+                    {
+                      "text": "\n🏆 FINAL THEME ASSESSMENT:\n"
+                    },
+                    {
+                      "text": "   Element structure: 6/6 elements present\n"
+                    },
+                    {
+                      "text": "   Theme consistency: 7/7 features working\n"
+                    },
+                    {
+                      "text": "\n🎉 EXCELLENT! Calendar theme perfectly matches dashboard!\n"
+                    },
+                    {
+                      "text": "   ✅ Dark theme with animated background\n"
+                    },
+                    {
+                      "text": "   ✅ Glassmorphism and backdrop blur effects\n"
+                    },
+                    {
+                      "text": "   ✅ Consistent sidebar and navigation\n"
+                    },
+                    {
+                      "text": "   ✅ Proper color scheme and gradients\n"
+                    },
+                    {
+                      "text": "   ✅ Modal and form styling matches\n"
+                    },
+                    {
+                      "text": "\n   🎨 Visual coherence achieved across entire application!\n"
                     }
                   ],
-                  "status": "skipped"
-                }
-              ],
-              "id": "ce7c070a851ea64285fd-ddf1090a1e4565ab3cbd",
-              "file": "navigation.spec.js",
-              "line": 98,
-              "column": 3
-            },
-            {
-              "title": "navigation with JavaScript debugging",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-31T02:44:33.703Z",
                   "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "performance",
-                  "projectName": "performance",
-                  "results": [
-                    {
-                      "workerIndex": 1,
-                      "parallelIndex": 1,
-                      "status": "interrupted",
-                      "duration": 5226,
-                      "error": {
-                        "message": "Error: browser.newContext: Test ended.",
-                        "stack": "Error: browser.newContext: Test ended."
-                      },
-                      "errors": [
-                        {
-                          "message": "Error: browser.newContext: Test ended."
-                        }
-                      ],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-08-30T15:10:55.725Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "skipped"
+                  "attachments": []
                 }
               ],
-              "id": "ce7c070a851ea64285fd-4121ae77b6b8046e6673",
-              "file": "navigation.spec.js",
-              "line": 98,
-              "column": 3
+              "status": "expected"
             }
-          ]
+          ],
+          "id": "25aaab9e6283f4a4d2fd-d59e84bd760eda9889e5",
+          "file": "calendar-visual-test.spec.js",
+          "line": 3,
+          "column": 1
+        },
+        {
+          "title": "visual verification of calendar theme matching dashboard",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "performance",
+              "projectName": "performance",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 10915,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "🎨 Visual verification of calendar theme consistency\n"
+                    },
+                    {
+                      "text": "📅 Calendar page loaded\n"
+                    },
+                    {
+                      "text": "\n🏗️ THEME STRUCTURE:\n"
+                    },
+                    {
+                      "text": "   sidebar: ✅ (1)\n"
+                    },
+                    {
+                      "text": "   calendarGrid: ✅ (1)\n"
+                    },
+                    {
+                      "text": "   mainHeader: ✅ (1)\n"
+                    },
+                    {
+                      "text": "   calendarDays: ✅ (1)\n"
+                    },
+                    {
+                      "text": "   addEventBtn: ✅ (1)\n"
+                    },
+                    {
+                      "text": "   todayCell: ✅ (1)\n"
+                    },
+                    {
+                      "text": "\n🎨 THEME STYLING ANALYSIS:\n"
+                    },
+                    {
+                      "text": "   Dark sidebar: ✅\n"
+                    },
+                    {
+                      "text": "   Dark header: ✅\n"
+                    },
+                    {
+                      "text": "   Glassmorphism effects: ✅\n"
+                    },
+                    {
+                      "text": "   Transparent elements: ✅\n"
+                    },
+                    {
+                      "text": "   Today cell gradient: ✅\n"
+                    },
+                    {
+                      "text": "   Header backdrop blur: ✅\n"
+                    },
+                    {
+                      "text": "   Sidebar backdrop blur: ✅\n"
+                    },
+                    {
+                      "text": "\n📝 Testing modal theme consistency...\n"
+                    },
+                    {
+                      "text": "   Modal dark background: ✅\n"
+                    },
+                    {
+                      "text": "   Modal backdrop blur: ✅\n"
+                    },
+                    {
+                      "text": "   Modal rounded corners: ✅\n"
+                    },
+                    {
+                      "text": "   Modal border styling: ✅\n"
+                    },
+                    {
+                      "text": "\n🏆 FINAL THEME ASSESSMENT:\n"
+                    },
+                    {
+                      "text": "   Element structure: 6/6 elements present\n"
+                    },
+                    {
+                      "text": "   Theme consistency: 7/7 features working\n"
+                    },
+                    {
+                      "text": "\n🎉 EXCELLENT! Calendar theme perfectly matches dashboard!\n"
+                    },
+                    {
+                      "text": "   ✅ Dark theme with animated background\n"
+                    },
+                    {
+                      "text": "   ✅ Glassmorphism and backdrop blur effects\n"
+                    },
+                    {
+                      "text": "   ✅ Consistent sidebar and navigation\n"
+                    },
+                    {
+                      "text": "   ✅ Proper color scheme and gradients\n"
+                    },
+                    {
+                      "text": "   ✅ Modal and form styling matches\n"
+                    },
+                    {
+                      "text": "\n   🎨 Visual coherence achieved across entire application!\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-31T02:44:33.681Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "25aaab9e6283f4a4d2fd-3a01de8229d4be4d8c3e",
+          "file": "calendar-visual-test.spec.js",
+          "line": 3,
+          "column": 1
         }
       ]
     }
   ],
   "errors": [],
   "stats": {
-    "startTime": "2025-08-30T15:10:42.278Z",
-    "duration": 48434.843,
-    "expected": 0,
-    "skipped": 2,
+    "startTime": "2025-08-31T02:44:27.692Z",
+    "duration": 21763.944,
+    "expected": 2,
+    "skipped": 0,
     "unexpected": 0,
     "flaky": 0
   }
