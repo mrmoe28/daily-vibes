@@ -264,6 +264,7 @@ async function handleEventSubmit(e) {
     
     const formData = new FormData(e.target);
     const eventData = {
+        userId: 'default',
         title: formData.get('title'),
         description: formData.get('description'),
         date: formData.get('date'),
@@ -288,7 +289,9 @@ async function handleEventSubmit(e) {
             body: JSON.stringify(eventData)
         });
 
-        if (response.ok) {
+        const responseData = await response.json();
+        
+        if (response.ok && responseData.success) {
             closeEventModal();
             await loadEvents();
             renderCalendar();
@@ -297,11 +300,11 @@ async function handleEventSubmit(e) {
             }
             showNotification(editingEventId ? 'Event updated successfully' : 'Event created successfully', 'success');
         } else {
-            throw new Error('Failed to save event');
+            throw new Error(responseData.error || 'Failed to save event');
         }
     } catch (error) {
         console.error('Error saving event:', error);
-        showNotification('Failed to save event', 'error');
+        showNotification('Failed to save event: ' + error.message, 'error');
     }
 }
 
@@ -315,7 +318,9 @@ async function handleDeleteEvent() {
             method: 'DELETE'
         });
 
-        if (response.ok) {
+        const responseData = await response.json();
+
+        if (response.ok && responseData.success) {
             closeEventModal();
             await loadEvents();
             renderCalendar();
@@ -324,20 +329,22 @@ async function handleDeleteEvent() {
             }
             showNotification('Event deleted successfully', 'success');
         } else {
-            throw new Error('Failed to delete event');
+            throw new Error(responseData.error || 'Failed to delete event');
         }
     } catch (error) {
         console.error('Error deleting event:', error);
-        showNotification('Failed to delete event', 'error');
+        showNotification('Failed to delete event: ' + error.message, 'error');
     }
 }
 
 async function loadEvents() {
     try {
-        const response = await fetch('/api/events');
+        const response = await fetch('/api/events?userId=default');
         if (response.ok) {
             const data = await response.json();
             events = data.events || [];
+        } else {
+            console.error('Failed to load events:', response.status);
         }
     } catch (error) {
         console.error('Error loading events:', error);

@@ -1245,21 +1245,6 @@ class TaskFlowApp {
         }
     }
     
-    showAnalyticsView() {
-        // Hide other views
-        this.hideAllViews();
-        
-        // Show analytics view
-        const analyticsView = document.getElementById('analyticsView');
-        if (analyticsView) {
-            analyticsView.style.display = 'block';
-            // Initialize analytics if needed
-            if (!this.analyticsInitialized) {
-                this.initializeAnalytics();
-                this.analyticsInitialized = true;
-            }
-        }
-    }
     
     showSearchView() {
         // Hide other views
@@ -1282,7 +1267,6 @@ class TaskFlowApp {
         const views = [
             'taskBoard',
             'calendarView', 
-            'analyticsView',
             'searchView'
         ];
         
@@ -1306,14 +1290,6 @@ class TaskFlowApp {
         }
     }
     
-    initializeAnalytics() {
-        console.log('Initializing analytics view...');
-        // Basic analytics initialization - can be expanded later
-        const chartContainer = document.getElementById('completionChart');
-        if (chartContainer) {
-            chartContainer.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted);">Analytics dashboard coming soon...</div>';
-        }
-    }
     
     initializeSearch() {
         console.log('Initializing search view...');
@@ -1367,7 +1343,6 @@ class TaskFlowApp {
     getViewElement(viewType) {
         const viewMap = {
             'calendar': document.getElementById('calendarView'),
-            'analytics': document.getElementById('analyticsView'),
             'search': document.getElementById('searchView'),
             'tasks': document.getElementById('taskBoard')
         };
@@ -1414,9 +1389,6 @@ class TaskFlowApp {
             case 'calendar':
                 this.showCalendarView();
                 break;
-            case 'analytics':
-                this.showAnalyticsView();
-                break;
             case 'search':
                 this.showSearchView();
                 break;
@@ -1439,10 +1411,6 @@ class TaskFlowApp {
         if (calendarView) calendarView.style.display = 'none';
     }
     
-    hideAnalyticsView() {
-        const analyticsView = document.getElementById('analyticsView');
-        if (analyticsView) analyticsView.style.display = 'none';
-    }
     
     hideSearchView() {
         const searchView = document.getElementById('searchView');
@@ -2031,9 +1999,6 @@ class TaskFlowApp {
                 case 'calendar':
                     pageTitle.textContent = 'Calendar View';
                     break;
-                case 'analytics':
-                    pageTitle.textContent = 'Analytics Dashboard';
-                    break;
                 case 'search':
                     pageTitle.textContent = 'Search Tasks';
                     break;
@@ -2053,9 +2018,6 @@ class TaskFlowApp {
                 break;
             case 'calendar':
                 this.showCalendarView();
-                break;
-            case 'analytics':
-                this.showAnalyticsView();
                 break;
             case 'search':
                 this.showSearchView();
