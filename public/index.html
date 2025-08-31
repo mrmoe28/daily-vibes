@@ -531,7 +531,7 @@
     </nav>
 
     <!-- Main Container -->
-    <main class="main-container">
+    <main class="main-container" role="main">
         <!-- Dashboard View -->
         <div id="taskBoard">
             <!-- Page Header -->
@@ -540,9 +540,9 @@
                     <h1 class="page-title">Task Dashboard</h1>
                     <p class="page-subtitle">Manage your tasks and track your progress</p>
                 </div>
-                <button class="btn btn-primary" id="headerAddTaskBtn">
+                <button class="btn btn-primary" id="headerAddTaskBtn" aria-label="Add new task">
                     <i class="fas fa-plus"></i>
-                    Add New Task
+                    Add Task
                 </button>
             </div>
 
@@ -577,7 +577,7 @@
                 </div>
                 
                 <div class="board-content">
-                    <div class="task-columns">
+                    <div class="task-columns task-manager" aria-label="Task management board">
                         <!-- To Do Column -->
                         <div class="task-column" data-status="todo">
                             <div class="column-header">
@@ -627,7 +627,7 @@
         <!-- Calendar View -->
         <div id="calendarView" style="display: none;">
             <div class="page-header">
-                <h1 class="page-title">Calendar View</h1>
+                <h2 class="page-title">Calendar View</h2>
                 <p class="page-subtitle">View your tasks in a calendar format</p>
             </div>
             <div class="empty-state">
@@ -641,7 +641,7 @@
         <!-- Search View -->
         <div id="searchView" style="display: none;">
             <div class="page-header">
-                <h1 class="page-title">Search Tasks</h1>
+                <h2 class="page-title">Search Tasks</h2>
                 <p class="page-subtitle">Find and filter your tasks</p>
             </div>
             <div class="empty-state">

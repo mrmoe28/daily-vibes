@@ -257,7 +257,13 @@ app.get('/api/tasks', ensureServices, async (req, res) => {
     
     res.json({ success: true, tasks });
   } catch (error) {
-    logger.error('Get tasks error:', error);
+    logger.error('Get tasks error:', { 
+      message: error.message, 
+      userId, 
+      status, 
+      withAttachments,
+      stack: error.stack 
+    });
     res.status(500).json({ error: 'Failed to retrieve tasks' });
   }
 });

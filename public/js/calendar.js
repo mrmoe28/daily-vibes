@@ -133,6 +133,20 @@ function setupEventListeners() {
             closeEventDetailsModal();
         }
     });
+
+    // Add escape key handler for modal close
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeEventModal();
+            closeEventDetailsModal();
+        }
+    });
+
+    // Add navigation handler to ensure modals close when navigating
+    window.addEventListener('beforeunload', () => {
+        closeEventModal();
+        closeEventDetailsModal();
+    });
 }
 
 function renderCalendar() {
@@ -323,6 +337,9 @@ function closeEventDetailsModal() {
         const modal = document.getElementById('eventDetailsModal');
         if (modal) {
             modal.classList.remove('show');
+            modal.style.display = 'none';
+            // Remove any event listeners to prevent memory leaks
+            modal.removeAttribute('data-active');
         }
     } catch (error) {
         console.error('Error closing event details modal:', error);
@@ -398,6 +415,7 @@ function closeEventModal() {
         const modal = document.getElementById('eventModal');
         if (modal) {
             modal.classList.remove('show');
+            modal.style.display = 'none';
         }
         editingEventId = null;
     } catch (error) {
@@ -555,11 +573,6 @@ async function loadEvents() {
 }
 
 // Utility functions
-function updateMonthYearDisplay() {
-    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-                       'July', 'August', 'September', 'October', 'November', 'December'];
-    document.getElementById('currentMonthYear').textContent = `${monthNames[currentMonth]} ${currentYear}`;
-}
 
 function isDateToday(year, month, day) {
     const today = new Date();
