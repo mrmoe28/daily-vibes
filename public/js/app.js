@@ -1978,6 +1978,12 @@ class TaskFlowApp {
     navigateToPage(page) {
         console.log('Navigating to page:', page);
         
+        // Handle calendar page - redirect to calendar.html
+        if (page === 'calendar') {
+            window.location.href = 'calendar.html';
+            return;
+        }
+        
         // Update current page
         this.currentPage = page;
         
