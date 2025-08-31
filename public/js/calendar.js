@@ -219,27 +219,48 @@ function createDayElement(day, isOtherMonth, isToday) {
         if (!isOtherMonth) {
             const dateStr = formatDateString(currentYear, currentMonth, day);
             const dayEvents = events.filter(event => {
-                if (!event || !event.date) return false;
-                // Handle both formats: "2025-08-31" and "2025-08-31T04:00:00.000Z"
-                const eventDateStr = event.date.split('T')[0]; // Extract date part
-                const matches = eventDateStr === dateStr;
-                if (matches) {
-                    console.log(`🗓️ Event "${event.title}" matches date ${dateStr}`);
+                // Enhanced validation
+                if (!event || !event.date || !event.title || !event.id) {
+                    console.warn('❌ Invalid event filtered out in day view:', event);
+                    return false;
                 }
-                return matches;
+                
+                try {
+                    // Handle both formats: "2025-08-31" and "2025-08-31T04:00:00.000Z"
+                    const eventDateStr = event.date.split('T')[0]; // Extract date part
+                    const matches = eventDateStr === dateStr;
+                    if (matches) {
+                        console.log(`🗓️ Event "${event.title}" matches date ${dateStr}`);
+                    }
+                    return matches;
+                } catch (error) {
+                    console.warn('❌ Error processing event date:', event, error);
+                    return false;
+                }
             });
             
-            if (dayEvents.length > 1) {
-                console.log(`📊 Day ${dateStr} has ${dayEvents.length} events:`, dayEvents.map(e => e.title));
+            // Additional deduplication by ID for this day (safety check)
+            const uniqueDayEvents = dayEvents.filter((event, index, arr) => {
+                return arr.findIndex(e => e.id === event.id) === index;
+            });
+            
+            if (uniqueDayEvents.length !== dayEvents.length) {
+                console.warn(`🔍 Removed ${dayEvents.length - uniqueDayEvents.length} duplicate events for ${dateStr}`);
             }
             
-            if (dayEvents.length > 0) {
+            const finalDayEvents = uniqueDayEvents;
+            
+            if (finalDayEvents.length > 1) {
+                console.log(`📊 Day ${dateStr} has ${finalDayEvents.length} events:`, finalDayEvents.map(e => e.title));
+            }
+            
+            if (finalDayEvents.length > 0) {
                 dayDiv.classList.add('has-events');
                 const eventsPreview = document.createElement('div');
                 eventsPreview.className = 'day-events-preview';
                 
                 // Show only the first event prominently for better readability
-                const firstEvent = dayEvents[0];
+                const firstEvent = finalDayEvents[0];
                 const eventPreview = document.createElement('div');
                 eventPreview.className = `event-preview ${firstEvent.color || 'blue'}`;
                 
@@ -288,10 +309,10 @@ function createDayElement(day, isOtherMonth, isToday) {
                 eventsPreview.appendChild(eventPreview);
                 
                 // If more than 1 event, show count with click handler
-                if (dayEvents.length > 1) {
+                if (finalDayEvents.length > 1) {
                     const moreEvents = document.createElement('div');
                     moreEvents.className = 'more-events';
-                    const additionalCount = dayEvents.length - 1;
+                    const additionalCount = finalDayEvents.length - 1;
                     moreEvents.innerHTML = `<i class="fas fa-calendar-plus"></i> ${additionalCount} more event${additionalCount > 1 ? 's' : ''}`;
                     
                     // Add click handler to show all events for the day
@@ -386,19 +407,38 @@ function displayDayEvents(date) {
         
         const dateStr = formatDateString(date.getFullYear(), date.getMonth(), date.getDate());
         const dayEvents = events.filter(event => {
-            if (!event || !event.date) return false;
-            // Handle both formats: "2025-08-31" and "2025-08-31T04:00:00.000Z"
-            const eventDateStr = event.date.split('T')[0]; // Extract date part
-            return eventDateStr === dateStr;
+            // Enhanced validation (same as in createDayElement)
+            if (!event || !event.date || !event.title || !event.id) {
+                console.warn('❌ Invalid event filtered out in day display:', event);
+                return false;
+            }
+            
+            try {
+                // Handle both formats: "2025-08-31" and "2025-08-31T04:00:00.000Z"
+                const eventDateStr = event.date.split('T')[0]; // Extract date part
+                return eventDateStr === dateStr;
+            } catch (error) {
+                console.warn('❌ Error processing event date in day display:', event, error);
+                return false;
+            }
         });
 
-        if (dayEvents.length === 0) {
+        // Additional deduplication by ID (safety check)
+        const uniqueDayEvents = dayEvents.filter((event, index, arr) => {
+            return arr.findIndex(e => e.id === event.id) === index;
+        });
+
+        if (uniqueDayEvents.length !== dayEvents.length) {
+            console.warn(`🔍 Removed ${dayEvents.length - uniqueDayEvents.length} duplicate events in day display for ${dateStr}`);
+        }
+
+        if (uniqueDayEvents.length === 0) {
             dayEventsContainer.innerHTML = '<p class="no-events">No events for this day</p>';
             return;
         }
 
         dayEventsContainer.innerHTML = '';
-        dayEvents.forEach(event => {
+        uniqueDayEvents.forEach(event => {
             const eventCard = document.createElement('div');
             eventCard.className = `event-card ${event.color || 'blue'}`;
             eventCard.innerHTML = `
@@ -603,15 +643,47 @@ async function loadEvents(skipRender = false) {
         const response = await fetch('/api/events?userId=default');
         if (response.ok) {
             const data = await response.json();
-            events = data.events || [];
-            console.log(`📅 Loaded ${events.length} events from database`);
+            let rawEvents = data.events || [];
+            console.log(`📅 Loaded ${rawEvents.length} raw events from database`);
             
-            // Debug: Check for duplicate events
-            const eventTitles = events.map(e => e.title);
-            const duplicates = eventTitles.filter((item, index) => eventTitles.indexOf(item) !== index);
-            if (duplicates.length > 0) {
-                console.warn('🔍 Duplicate events found:', duplicates);
+            // Validate and clean events
+            const validEvents = rawEvents.filter(event => {
+                // Basic validation
+                if (!event || !event.id || !event.title || !event.date) {
+                    console.warn('❌ Invalid event filtered out:', event);
+                    return false;
+                }
+                return true;
+            });
+            
+            // Remove duplicates by ID (primary deduplication)
+            const uniqueEvents = validEvents.filter((event, index, arr) => {
+                return arr.findIndex(e => e.id === event.id) === index;
+            });
+            
+            // Debug: Check for duplicate events by title/date/time
+            const eventSignatures = uniqueEvents.map(e => `${e.title}|${e.date}|${e.time || 'notime'}`);
+            const duplicateSignatures = eventSignatures.filter((sig, index) => eventSignatures.indexOf(sig) !== index);
+            if (duplicateSignatures.length > 0) {
+                console.warn('🔍 Potential duplicate events by content:', duplicateSignatures);
+                
+                // Log the actual duplicate events for debugging
+                duplicateSignatures.forEach(sig => {
+                    const [title, date, time] = sig.split('|');
+                    const matchingEvents = uniqueEvents.filter(e => 
+                        e.title === title && 
+                        e.date === date && 
+                        (e.time || 'notime') === time
+                    );
+                    if (matchingEvents.length > 1) {
+                        console.warn('📄 Duplicate events:', matchingEvents);
+                    }
+                });
             }
+            
+            // Set the cleaned events
+            events = uniqueEvents;
+            console.log(`✅ Using ${events.length} valid, unique events`);
             
             // Only re-render if not explicitly skipped
             if (!skipRender) {

@@ -502,6 +502,307 @@ app.use((error, req, res, next) => {
 // Serve uploaded files
 app.use('/uploads', express.static('./uploads'));
 
+// AI Assistant routes
+app.post('/api/assistant/chat', ensureServices, async (req, res) => {
+  try {
+    const { message, sessionId = null } = req.body;
+    
+    if (!message || message.trim().length === 0) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    // Get user ID from token or use default
+    const userId = req.user?.id || 'default';
+
+    // Import and initialize AI services
+    const { AIAssistant } = require('./lib/ai-assistant');
+    const { MemoryService } = require('./lib/memory-service');
+    const { NLPParser } = require('./lib/nlp-parser');
+    
+    const aiAssistant = new AIAssistant(database);
+    const memoryService = new MemoryService(database);
+    const nlpParser = new NLPParser();
+
+    // First, try NLP parsing for quick response
+    const nlpResult = nlpParser.parse(message);
+    
+    // If NLP parsing has high confidence and clear intent, handle directly
+    if (nlpResult.confidence > 0.8 && nlpResult.intent !== 'UNKNOWN') {
+      const response = await handleDirectIntent(nlpResult, userId, database);
+      
+      // Store conversation
+      await memoryService.storeConversation(
+        userId, 
+        message, 
+        response.text, 
+        nlpResult.intent, 
+        nlpResult.entities, 
+        sessionId
+      );
+      
+      return res.json({
+        success: true,
+        response: response.text,
+        action: response.action,
+        data: response.data,
+        intent: nlpResult.intent,
+        entities: nlpResult.entities,
+        confidence: nlpResult.confidence,
+        source: 'nlp'
+      });
+    }
+
+    // For complex queries or low confidence, use AI Assistant
+    const aiResponse = await aiAssistant.processMessage(userId, message, sessionId);
+    
+    if (!aiResponse.success) {
+      return res.status(400).json({
+        error: aiResponse.error,
+        originalMessage: message
+      });
+    }
+
+    // Execute action if needed
+    if (aiResponse.action) {
+      const actionResult = await executeAction(aiResponse.action, aiResponse.data, userId, database);
+      aiResponse.actionResult = actionResult;
+    }
+
+    return res.json({
+      success: true,
+      response: aiResponse.response,
+      action: aiResponse.action,
+      data: aiResponse.data,
+      actionResult: aiResponse.actionResult,
+      intent: aiResponse.intent,
+      entities: aiResponse.entities,
+      source: 'ai'
+    });
+
+  } catch (error) {
+    logger.error('AI Chat error:', error);
+    return res.status(500).json({
+      error: 'I had trouble processing your request. Please try again.',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// AI Memory management
+app.get('/api/assistant/memory', ensureServices, async (req, res) => {
+  try {
+    const { MemoryService } = require('./lib/memory-service');
+    const memoryService = new MemoryService(database);
+    const userId = req.user?.id || 'default';
+    const { category, key } = req.query;
+    
+    if (key) {
+      const memory = await memoryService.getMemory(userId, key);
+      return res.json({ success: true, memory });
+    }
+    
+    if (category) {
+      const memories = await memoryService.getMemoriesByCategory(userId, category, 50);
+      return res.json({ success: true, memories, category });
+    }
+    
+    // Get all categories summary
+    const categories = ['personal', 'behavioral', 'contextual', 'preferences', 'relationships'];
+    const memorySummary = {};
+    
+    for (const cat of categories) {
+      const memories = await memoryService.getMemoriesByCategory(userId, cat, 10);
+      memorySummary[cat] = memories;
+    }
+    
+    return res.json({ success: true, summary: memorySummary });
+
+  } catch (error) {
+    logger.error('Memory API error:', error);
+    return res.status(500).json({ error: 'Failed to retrieve memories' });
+  }
+});
+
+// AI Feedback
+app.post('/api/assistant/feedback', ensureServices, async (req, res) => {
+  try {
+    const { conversationId, feedbackType, feedbackText = null } = req.body;
+    
+    if (!conversationId || !feedbackType) {
+      return res.status(400).json({ 
+        error: 'Conversation ID and feedback type are required' 
+      });
+    }
+
+    if (!['positive', 'negative', 'correction'].includes(feedbackType)) {
+      return res.status(400).json({ 
+        error: 'Feedback type must be positive, negative, or correction' 
+      });
+    }
+
+    const userId = req.user?.id || 'default';
+
+    const feedback = {
+      user_id: userId,
+      message_id: conversationId,
+      feedback: feedbackType,
+      feedback_text: feedbackText,
+      created_at: new Date()
+    };
+
+    const feedbackId = await database.storeFeedback(feedback);
+
+    return res.json({
+      success: true,
+      message: 'Thank you for your feedback! I\'ll use it to improve.',
+      feedbackId: feedbackId,
+      feedbackType: feedbackType
+    });
+
+  } catch (error) {
+    logger.error('Feedback API error:', error);
+    return res.status(500).json({ error: 'Failed to process feedback' });
+  }
+});
+
+// Helper functions for AI chat
+async function handleDirectIntent(nlpResult, userId, database) {
+  const { intent, entities } = nlpResult;
+
+  switch (intent) {
+    case 'CREATE':
+      return await handleCreateEvent(entities, userId, database);
+    case 'QUERY':
+      return await handleQuerySchedule(entities, userId, database);
+    default:
+      return {
+        text: "I understand you want to " + intent.toLowerCase() + " something, but I need more details.",
+        action: null,
+        data: entities
+      };
+  }
+}
+
+async function handleCreateEvent(entities, userId, database) {
+  if (!entities.date || !entities.time) {
+    return {
+      text: !entities.date ? "What day would you like to schedule this?" : "What time should it start?",
+      action: !entities.date ? 'REQUEST_DATE' : 'REQUEST_TIME',
+      data: entities
+    };
+  }
+
+  const eventData = {
+    id: 'evt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+    userId,
+    title: entities.title || 'New Event',
+    description: entities.description || '',
+    date: entities.date,
+    time: entities.time,
+    type: entities.eventType || 'other',
+    location: entities.location || null,
+    allDay: entities.duration >= 480
+  };
+
+  try {
+    const createdEvent = await database.createEvent(eventData);
+    const eventDate = new Date(entities.date + 'T' + entities.time);
+    const dateStr = eventDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    const timeStr = eventDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    
+    return {
+      text: `Perfect! I've scheduled "${entities.title}" for ${dateStr} at ${timeStr}.`,
+      action: 'EVENT_CREATED',
+      data: { event: createdEvent, original: entities }
+    };
+  } catch (error) {
+    return {
+      text: "I had trouble creating that event. Please try again.",
+      action: 'ERROR',
+      data: { error: error.message }
+    };
+  }
+}
+
+async function handleQuerySchedule(entities, userId, database) {
+  try {
+    const startDate = entities.date || new Date().toISOString().split('T')[0];
+    const endDate = startDate;
+    
+    const events = await database.getEventsByDateRange(userId, startDate, endDate);
+    
+    if (events.length === 0) {
+      const dayStr = new Date(startDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+      return {
+        text: `You have no events scheduled for ${dayStr}. Would you like to add something?`,
+        action: 'SHOW_EMPTY_SCHEDULE',
+        data: { startDate, endDate }
+      };
+    }
+    
+    let responseText = `Here's your schedule:\n\n`;
+    for (const event of events) {
+      const eventTime = event.time ? 
+        new Date('2000-01-01T' + event.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) :
+        'All day';
+      responseText += `• ${event.title} at ${eventTime}\n`;
+    }
+    
+    return {
+      text: responseText,
+      action: 'SHOW_SCHEDULE',
+      data: { events, startDate, endDate }
+    };
+  } catch (error) {
+    return {
+      text: "I had trouble checking your schedule. Please try again.",
+      action: 'ERROR',
+      data: { error: error.message }
+    };
+  }
+}
+
+async function executeAction(action, data, userId, database) {
+  switch (action) {
+    case 'CONFIRM_CREATE_EVENT':
+      return await createEventFromData(data, userId, database);
+    case 'SHOW_SCHEDULE':
+      return await getScheduleData(data, userId, database);
+    default:
+      return { type: 'no_action' };
+  }
+}
+
+async function createEventFromData(data, userId, database) {
+  try {
+    const eventData = {
+      id: 'evt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+      userId,
+      title: data.title || 'New Event',
+      description: data.description || '',
+      date: data.date,
+      time: data.time || '09:00',
+      type: data.eventType || 'other',
+      location: data.location || null,
+      allDay: data.duration >= 480
+    };
+
+    const createdEvent = await database.createEvent(eventData);
+    return { type: 'event_created', event: createdEvent, success: true };
+  } catch (error) {
+    return { type: 'error', success: false, error: error.message };
+  }
+}
+
+async function getScheduleData(data, userId, database) {
+  try {
+    const events = await database.getEventsByDateRange(userId, data.startDate, data.endDate);
+    return { type: 'schedule_data', events, dateRange: { start: data.startDate, end: data.endDate }, success: true };
+  } catch (error) {
+    return { type: 'error', success: false, error: error.message };
+  }
+}
+
 // Start server
 async function startServer() {
   try {
