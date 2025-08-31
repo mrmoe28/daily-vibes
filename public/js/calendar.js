@@ -28,6 +28,7 @@ function setupEventListeners() {
     const nextBtn = document.getElementById('nextMonthBtn');
     const todayBtn = document.getElementById('todayBtn');
     const addEventBtn = document.getElementById('addEventBtn');
+    const addTaskBtn = document.getElementById('addTaskBtn'); // Add Task button in navigation
     const addEventForDayBtn = document.getElementById('addEventForDay');
     const closeEventDetailsBtn = document.getElementById('closeEventDetails');
     const eventForm = document.getElementById('eventForm');
@@ -83,6 +84,15 @@ function setupEventListeners() {
         newAddEventBtn.addEventListener('click', (e) => {
             e.preventDefault();
             openEventModal();
+        });
+    }
+
+    if (addTaskBtn) {
+        const newAddTaskBtn = addTaskBtn.cloneNode(true);
+        addTaskBtn.parentNode.replaceChild(newAddTaskBtn, addTaskBtn);
+        newAddTaskBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            openEventModal(); // Open the same event modal for consistency
         });
     }
 
