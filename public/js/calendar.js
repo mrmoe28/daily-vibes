@@ -199,37 +199,53 @@ function createDayElement(day, isOtherMonth, isToday) {
                 const eventsPreview = document.createElement('div');
                 eventsPreview.className = 'day-events-preview';
                 
-                // Show first 2 events as preview cards, rest as dots
-                dayEvents.slice(0, 2).forEach(event => {
-                    const eventPreview = document.createElement('div');
-                    eventPreview.className = `event-preview ${event.color || 'blue'}`;
-                    
-                    const eventTitle = document.createElement('div');
-                    eventTitle.className = 'event-preview-title';
-                    eventTitle.textContent = event.title || 'Untitled Event';
-                    eventPreview.appendChild(eventTitle);
-                    
-                    if (event.time) {
-                        const eventTime = document.createElement('div');
-                        eventTime.className = 'event-preview-time';
-                        eventTime.textContent = formatTime(event.time);
-                        eventPreview.appendChild(eventTime);
-                    }
-                    
-                    // Add click handler to event preview
-                    eventPreview.addEventListener('click', (e) => {
-                        e.stopPropagation(); // Prevent day selection
-                        editEvent(event);
-                    });
-                    
-                    eventsPreview.appendChild(eventPreview);
+                // Show only the first event prominently for better readability
+                const firstEvent = dayEvents[0];
+                const eventPreview = document.createElement('div');
+                eventPreview.className = `event-preview ${firstEvent.color || 'blue'}`;
+                
+                const eventTitle = document.createElement('div');
+                eventTitle.className = 'event-preview-title';
+                eventTitle.textContent = firstEvent.title || 'Untitled Event';
+                eventPreview.appendChild(eventTitle);
+                
+                // Show time and additional info
+                const eventDetails = document.createElement('div');
+                eventDetails.className = 'event-preview-details';
+                
+                if (firstEvent.time) {
+                    const eventTime = document.createElement('div');
+                    eventTime.className = 'event-preview-time';
+                    eventTime.textContent = formatTime(firstEvent.time);
+                    eventDetails.appendChild(eventTime);
+                }
+                
+                // Show location if available
+                if (firstEvent.location) {
+                    const eventLocation = document.createElement('div');
+                    eventLocation.className = 'event-preview-location';
+                    eventLocation.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${escapeHtml(firstEvent.location)}`;
+                    eventDetails.appendChild(eventLocation);
+                }
+                
+                if (eventDetails.children.length > 0) {
+                    eventPreview.appendChild(eventDetails);
+                }
+                
+                // Add click handler to event preview
+                eventPreview.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent day selection
+                    editEvent(firstEvent);
                 });
                 
-                // If more than 2 events, show count with click handler
-                if (dayEvents.length > 2) {
+                eventsPreview.appendChild(eventPreview);
+                
+                // If more than 1 event, show count with click handler
+                if (dayEvents.length > 1) {
                     const moreEvents = document.createElement('div');
                     moreEvents.className = 'more-events';
-                    moreEvents.textContent = `+${dayEvents.length - 2} more`;
+                    const additionalCount = dayEvents.length - 1;
+                    moreEvents.innerHTML = `<i class="fas fa-calendar-plus"></i> ${additionalCount} more event${additionalCount > 1 ? 's' : ''}`;
                     
                     // Add click handler to show all events for the day
                     moreEvents.addEventListener('click', (e) => {
