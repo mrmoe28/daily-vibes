@@ -223,6 +223,14 @@ function createDayElement(day, isOtherMonth, isToday) {
                 eventTitle.textContent = firstEvent.title || 'Untitled Event';
                 eventPreview.appendChild(eventTitle);
                 
+                // Show description if available
+                if (firstEvent.description) {
+                    const eventDesc = document.createElement('div');
+                    eventDesc.className = 'event-preview-description';
+                    eventDesc.textContent = firstEvent.description;
+                    eventPreview.appendChild(eventDesc);
+                }
+                
                 // Show time and additional info
                 const eventDetails = document.createElement('div');
                 eventDetails.className = 'event-preview-details';

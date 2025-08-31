@@ -44,6 +44,9 @@ class TaskFlowApp {
         // Load tasks from database first, fall back to localStorage
         await this.loadUserTasks();
         
+        // Load calendar events for dashboard
+        await this.loadUpcomingEvents();
+        
         this.setupDragAndDrop();
         
         // Initialize with current page
@@ -907,29 +910,28 @@ class TaskFlowApp {
     }
 
     async deleteTask(taskId) {
-        if (confirm('Are you sure you want to delete this task?')) {
-            try {
-                const response = await fetch(`/api/tasks/${taskId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        ...(this.authToken && { 'Authorization': 'Bearer ' + this.authToken })
-                    }
-                });
-
-                const data = await response.json();
-                
-                if (data.success) {
-                    this.tasks = this.tasks.filter(t => t.id !== taskId);
-                    this.renderTasks();
-                    this.updateStats();
-                    this.showToast('Task deleted successfully!', 'success');
-                } else {
-                    throw new Error(data.error || 'Failed to delete task');
+        // Delete immediately without confirmation
+        try {
+            const response = await fetch(`/api/tasks/${taskId}`, {
+                method: 'DELETE',
+                headers: {
+                    ...(this.authToken && { 'Authorization': 'Bearer ' + this.authToken })
                 }
-            } catch (error) {
-                console.error('Delete task error:', error);
-                this.showToast('Failed to delete task: ' + error.message, 'error');
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                this.tasks = this.tasks.filter(t => t.id !== taskId);
+                this.renderTasks();
+                this.updateStats();
+                this.showToast('Task deleted successfully!', 'success');
+            } else {
+                throw new Error(data.error || 'Failed to delete task');
             }
+        } catch (error) {
+            console.error('Delete task error:', error);
+            this.showToast('Failed to delete task: ' + error.message, 'error');
         }
     }
 
@@ -1863,6 +1865,108 @@ class TaskFlowApp {
                 this.updateStats();
             }
         }
+    }
+
+    async loadUpcomingEvents() {
+        try {
+            const userId = this.currentUser?.id || 'default';
+            const response = await fetch(`/api/events?userId=${userId}`, {
+                headers: {
+                    ...(this.authToken && { 'Authorization': 'Bearer ' + this.authToken })
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const events = data.events || [];
+                this.displayUpcomingEvents(events);
+            }
+        } catch (error) {
+            console.error('Error loading calendar events:', error);
+        }
+    }
+
+    displayUpcomingEvents(events) {
+        const container = document.getElementById('upcomingEventsContainer');
+        if (!container) return;
+
+        // Filter to show only today and future events
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const upcomingEvents = events.filter(event => {
+            const eventDate = new Date(event.date);
+            return eventDate >= today;
+        }).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        // Show only the next 5 events
+        const eventsToShow = upcomingEvents.slice(0, 5);
+
+        if (eventsToShow.length === 0) {
+            container.innerHTML = `
+                <div class="no-events-message">
+                    <i class="fas fa-calendar-check" style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+                    <p>No upcoming events</p>
+                    <a href="calendar.html" class="btn btn-primary" style="margin-top: 1rem;">
+                        <i class="fas fa-plus"></i> Add Event
+                    </a>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = eventsToShow.map(event => {
+            const eventDate = new Date(event.date);
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            
+            return `
+                <div class="event-card" onclick="window.location.href='calendar.html'">
+                    <div class="event-date-box">
+                        <div class="event-date-day">${eventDate.getDate()}</div>
+                        <div class="event-date-month">${monthNames[eventDate.getMonth()]}</div>
+                    </div>
+                    <div class="event-info">
+                        <div class="event-title">${this.escapeHtml(event.title || 'Untitled Event')}</div>
+                        ${event.description ? `<div class="event-description">${this.escapeHtml(event.description)}</div>` : ''}
+                        <div class="event-meta">
+                            ${event.time ? `
+                                <div class="event-meta-item">
+                                    <i class="fas fa-clock"></i>
+                                    <span>${this.formatTime(event.time)}</span>
+                                </div>
+                            ` : ''}
+                            ${event.location ? `
+                                <div class="event-meta-item">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    <span>${this.escapeHtml(event.location)}</span>
+                                </div>
+                            ` : ''}
+                            ${event.type ? `
+                                <div class="event-meta-item">
+                                    <i class="fas fa-tag"></i>
+                                    <span>${this.escapeHtml(event.type)}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    formatTime(timeString) {
+        if (!timeString) return '';
+        const [hours, minutes] = timeString.split(':');
+        const hour = parseInt(hours);
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const displayHour = hour % 12 || 12;
+        return `${displayHour}:${minutes} ${ampm}`;
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     async saveUserTasks() {

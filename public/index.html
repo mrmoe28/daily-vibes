@@ -182,6 +182,86 @@
             font-weight: 500;
         }
 
+        /* Event Cards */
+        .event-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            display: flex;
+            align-items: start;
+            gap: 1rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .event-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary);
+        }
+
+        .event-date-box {
+            min-width: 60px;
+            text-align: center;
+            padding: 0.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border-radius: 0.5rem;
+        }
+
+        .event-date-day {
+            font-size: 1.5rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .event-date-month {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            margin-top: 0.25rem;
+        }
+
+        .event-info {
+            flex: 1;
+        }
+
+        .event-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+            font-size: 1rem;
+        }
+
+        .event-description {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+        }
+
+        .event-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .event-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .no-events-message {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+            background: var(--surface);
+            border: 1px dashed var(--border);
+            border-radius: 0.75rem;
+        }
+
         /* Task Board */
         .task-board {
             background: var(--surface);
@@ -566,6 +646,22 @@
                 <div class="stat-card">
                     <div class="stat-value" id="completedTasks">0</div>
                     <div class="stat-label">Completed</div>
+                </div>
+            </div>
+
+            <!-- Upcoming Events Section -->
+            <div class="upcoming-events-section" style="margin: 2rem 0;">
+                <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2 style="font-size: 1.25rem; font-weight: 600; color: var(--text-primary);">
+                        <i class="fas fa-calendar-alt" style="color: var(--primary); margin-right: 0.5rem;"></i>
+                        Upcoming Events
+                    </h2>
+                    <a href="calendar.html" class="btn btn-secondary" style="font-size: 0.875rem; padding: 0.5rem 1rem;">
+                        View Calendar
+                    </a>
+                </div>
+                <div id="upcomingEventsContainer" style="display: grid; gap: 1rem;">
+                    <!-- Events will be dynamically loaded here -->
                 </div>
             </div>
 
