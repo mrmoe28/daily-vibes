@@ -222,8 +222,16 @@ function createDayElement(day, isOtherMonth, isToday) {
                 if (!event || !event.date) return false;
                 // Handle both formats: "2025-08-31" and "2025-08-31T04:00:00.000Z"
                 const eventDateStr = event.date.split('T')[0]; // Extract date part
-                return eventDateStr === dateStr;
+                const matches = eventDateStr === dateStr;
+                if (matches) {
+                    console.log(`🗓️ Event "${event.title}" matches date ${dateStr}`);
+                }
+                return matches;
             });
+            
+            if (dayEvents.length > 1) {
+                console.log(`📊 Day ${dateStr} has ${dayEvents.length} events:`, dayEvents.map(e => e.title));
+            }
             
             if (dayEvents.length > 0) {
                 dayDiv.classList.add('has-events');
@@ -538,6 +546,9 @@ async function handleEventSubmit(e) {
             }
             showNotification(editingEventId ? 'Event updated successfully' : 'Event created successfully', 'success');
             
+            // Notify dashboard about the event change
+            notifyDashboardUpdate();
+            
             // Reload events from server to ensure data consistency
             await loadEvents(true); // Skip render since we already rendered above
         } else {
@@ -573,6 +584,9 @@ async function handleDeleteEvent() {
             }
             showNotification('Event deleted successfully', 'success');
             
+            // Notify dashboard about the event change
+            notifyDashboardUpdate();
+            
             // Reload events from server to ensure data consistency
             await loadEvents(true); // Skip render since we already rendered above
         } else {
@@ -590,6 +604,15 @@ async function loadEvents(skipRender = false) {
         if (response.ok) {
             const data = await response.json();
             events = data.events || [];
+            console.log(`📅 Loaded ${events.length} events from database`);
+            
+            // Debug: Check for duplicate events
+            const eventTitles = events.map(e => e.title);
+            const duplicates = eventTitles.filter((item, index) => eventTitles.indexOf(item) !== index);
+            if (duplicates.length > 0) {
+                console.warn('🔍 Duplicate events found:', duplicates);
+            }
+            
             // Only re-render if not explicitly skipped
             if (!skipRender) {
                 renderCalendar();
@@ -810,4 +833,17 @@ function handleURLParameters() {
             }
         }, 500); // Small delay to ensure modal elements are ready
     }
+}
+
+function notifyDashboardUpdate() {
+    // Use localStorage to notify dashboard of changes
+    const timestamp = Date.now();
+    localStorage.setItem('calendarEventsUpdated', timestamp.toString());
+    
+    // Also try to notify parent window if this is opened in a popup/iframe
+    if (window.opener && !window.opener.closed) {
+        window.opener.postMessage('eventsUpdated', '*');
+    }
+    
+    console.log('📡 Notified dashboard of event changes');
 }

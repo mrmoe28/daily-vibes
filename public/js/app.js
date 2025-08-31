@@ -2022,6 +2022,38 @@ class TaskFlowApp {
                 this.loadUpcomingEvents();
             }
         });
+
+        // Listen for real-time updates from calendar page
+        this.setupRealTimeEventUpdates();
+    }
+
+    setupRealTimeEventUpdates() {
+        // Listen for localStorage changes (calendar notifications)
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'calendarEventsUpdated' && this.currentPage === 'dashboard') {
+                console.log('🔄 Received calendar update notification, refreshing dashboard...');
+                this.loadUpcomingEvents();
+            }
+        });
+
+        // Listen for postMessage (if calendar is in popup/iframe)
+        window.addEventListener('message', (e) => {
+            if (e.data === 'eventsUpdated' && this.currentPage === 'dashboard') {
+                console.log('🔄 Received calendar postMessage, refreshing dashboard...');
+                this.loadUpcomingEvents();
+            }
+        });
+
+        // Poll for localStorage changes (fallback for same-tab updates)
+        let lastUpdateTimestamp = localStorage.getItem('calendarEventsUpdated');
+        setInterval(() => {
+            const currentTimestamp = localStorage.getItem('calendarEventsUpdated');
+            if (currentTimestamp && currentTimestamp !== lastUpdateTimestamp && this.currentPage === 'dashboard') {
+                console.log('🔄 Detected calendar update via polling, refreshing dashboard...');
+                lastUpdateTimestamp = currentTimestamp;
+                this.loadUpcomingEvents();
+            }
+        }, 1000); // Check every second
     }
 
     async saveUserTasks() {
