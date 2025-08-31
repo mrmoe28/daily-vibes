@@ -182,12 +182,49 @@
             font-weight: 500;
         }
 
-        /* Event Cards */
-        .event-card {
+        /* Calendar Events Section */
+        .calendar-events-section {
             background: var(--surface);
             border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            margin: 2rem 0;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin: 0;
+        }
+
+        .section-title i {
+            color: var(--primary);
+            font-size: 1.25rem;
+        }
+
+        .events-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        /* Event Cards */
+        .event-card {
+            background: var(--background);
+            border: 1px solid var(--border);
             border-radius: 0.75rem;
-            padding: 1rem;
+            padding: 1.25rem;
             display: flex;
             align-items: start;
             gap: 1rem;
@@ -199,6 +236,24 @@
             transform: translateY(-2px);
             box-shadow: var(--shadow-lg);
             border-color: var(--primary);
+        }
+
+        .no-events-message {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: var(--text-secondary);
+        }
+
+        .no-events-message i {
+            display: block;
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .no-events-message p {
+            font-size: 1.1rem;
+            margin: 0 0 1.5rem 0;
         }
 
         .event-date-box {
@@ -617,107 +672,55 @@
             <!-- Page Header -->
             <div class="page-header">
                 <div>
-                    <h1 class="page-title">Task Dashboard</h1>
-                    <p class="page-subtitle">Manage your tasks and track your progress</p>
+                    <h1 class="page-title">Event Dashboard</h1>
+                    <p class="page-subtitle">View your upcoming calendar events and manage your schedule</p>
                 </div>
-                <button class="btn btn-primary" id="headerAddTaskBtn" aria-label="Add new task">
+                <a href="calendar.html" class="btn btn-primary" aria-label="Add new event">
                     <i class="fas fa-plus"></i>
-                    Add Task
-                </button>
+                    Add Event
+                </a>
             </div>
 
             <!-- Stats Cards -->
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-value" id="totalTasks">0</div>
-                    <div class="stat-label">Total Tasks</div>
+                    <div class="stat-value" id="totalEvents">0</div>
+                    <div class="stat-label">Total Events</div>
                 </div>
                 
                 <div class="stat-card">
-                    <div class="stat-value" id="todoTasks">0</div>
-                    <div class="stat-label">To Do</div>
+                    <div class="stat-value" id="todayEvents">0</div>
+                    <div class="stat-label">Today</div>
                 </div>
                 
                 <div class="stat-card">
-                    <div class="stat-value" id="progressTasks">0</div>
-                    <div class="stat-label">In Progress</div>
+                    <div class="stat-value" id="thisWeekEvents">0</div>
+                    <div class="stat-label">This Week</div>
                 </div>
                 
                 <div class="stat-card">
-                    <div class="stat-value" id="completedTasks">0</div>
-                    <div class="stat-label">Completed</div>
+                    <div class="stat-value" id="upcomingEvents">0</div>
+                    <div class="stat-label">Upcoming</div>
                 </div>
             </div>
 
-            <!-- Upcoming Events Section -->
-            <div class="upcoming-events-section" style="margin: 2rem 0;">
-                <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h2 style="font-size: 1.25rem; font-weight: 600; color: var(--text-primary);">
-                        <i class="fas fa-calendar-alt" style="color: var(--primary); margin-right: 0.5rem;"></i>
-                        Upcoming Events
+            <!-- Calendar Events Section -->
+            <div class="calendar-events-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-calendar-alt"></i>
+                        Your Calendar Events
                     </h2>
-                    <a href="calendar.html" class="btn btn-secondary" style="font-size: 0.875rem; padding: 0.5rem 1rem;">
-                        View Calendar
+                    <a href="calendar.html" class="btn btn-primary">
+                        <i class="fas fa-plus"></i>
+                        Add Event
                     </a>
                 </div>
-                <div id="upcomingEventsContainer" style="display: grid; gap: 1rem;">
+                <div id="upcomingEventsContainer" class="events-grid">
                     <!-- Events will be dynamically loaded here -->
                 </div>
             </div>
 
-            <!-- Task Board -->
-            <div class="task-board">
-                <div class="board-header">
-                    <h2 class="board-title">Task Board</h2>
-                    <p class="board-subtitle">Drag and drop tasks between columns to update their status</p>
-                </div>
-                
-                <div class="board-content">
-                    <div class="task-columns task-manager" aria-label="Task management board">
-                        <!-- To Do Column -->
-                        <div class="task-column" data-status="todo">
-                            <div class="column-header">
-                                <h3 class="column-title">
-                                    <i class="fas fa-circle" style="color: var(--warning);"></i>
-                                    To Do
-                                </h3>
-                                <div class="column-count" id="todoCount">0</div>
-                            </div>
-                            <div class="task-list" id="todoList">
-                                <!-- Tasks will be dynamically added here -->
-                            </div>
-                        </div>
-
-                        <!-- In Progress Column -->
-                        <div class="task-column" data-status="progress">
-                            <div class="column-header">
-                                <h3 class="column-title">
-                                    <i class="fas fa-circle" style="color: var(--accent);"></i>
-                                    In Progress
-                                </h3>
-                                <div class="column-count" id="progressCount">0</div>
-                            </div>
-                            <div class="task-list" id="progressList">
-                                <!-- Tasks will be dynamically added here -->
-                            </div>
-                        </div>
-
-                        <!-- Completed Column -->
-                        <div class="task-column" data-status="completed">
-                            <div class="column-header">
-                                <h3 class="column-title">
-                                    <i class="fas fa-circle" style="color: var(--success);"></i>
-                                    Completed
-                                </h3>
-                                <div class="column-count" id="completedCount">0</div>
-                            </div>
-                            <div class="task-list" id="completedList">
-                                <!-- Tasks will be dynamically added here -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- Calendar View -->

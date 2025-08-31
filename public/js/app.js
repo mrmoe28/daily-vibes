@@ -41,13 +41,11 @@ class TaskFlowApp {
         this.setupAuthEventListeners();
         this.updateAuthUI();
         
-        // Load tasks from database first, fall back to localStorage
-        await this.loadUserTasks();
-        
         // Load calendar events for dashboard
         await this.loadUpcomingEvents();
         
-        this.setupDragAndDrop();
+        // Set up periodic refresh for calendar events
+        this.setupCalendarRefresh();
         
         // Initialize with current page
         this.navigateToPage(this.currentPage);
@@ -1880,6 +1878,7 @@ class TaskFlowApp {
                 const data = await response.json();
                 const events = data.events || [];
                 this.displayUpcomingEvents(events);
+                this.updateEventStats(events);
             }
         } catch (error) {
             console.error('Error loading calendar events:', error);
@@ -1954,6 +1953,46 @@ class TaskFlowApp {
         }).join('');
     }
 
+    updateEventStats(events) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        const weekFromToday = new Date(today);
+        weekFromToday.setDate(weekFromToday.getDate() + 7);
+
+        // Calculate stats
+        const totalEvents = events.length;
+        const todayEvents = events.filter(event => {
+            const eventDate = new Date(event.date);
+            eventDate.setHours(0, 0, 0, 0);
+            return eventDate.getTime() === today.getTime();
+        }).length;
+        
+        const thisWeekEvents = events.filter(event => {
+            const eventDate = new Date(event.date);
+            return eventDate >= today && eventDate < weekFromToday;
+        }).length;
+        
+        const upcomingEvents = events.filter(event => {
+            const eventDate = new Date(event.date);
+            return eventDate >= tomorrow;
+        }).length;
+
+        // Update DOM elements
+        const totalEventsEl = document.getElementById('totalEvents');
+        const todayEventsEl = document.getElementById('todayEvents');
+        const thisWeekEventsEl = document.getElementById('thisWeekEvents');
+        const upcomingEventsEl = document.getElementById('upcomingEvents');
+
+        if (totalEventsEl) totalEventsEl.textContent = totalEvents;
+        if (todayEventsEl) todayEventsEl.textContent = todayEvents;
+        if (thisWeekEventsEl) thisWeekEventsEl.textContent = thisWeekEvents;
+        if (upcomingEventsEl) upcomingEventsEl.textContent = upcomingEvents;
+    }
+
     formatTime(timeString) {
         if (!timeString) return '';
         const [hours, minutes] = timeString.split(':');
@@ -1967,6 +2006,22 @@ class TaskFlowApp {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    setupCalendarRefresh() {
+        // Refresh calendar events every 30 seconds when dashboard is active
+        setInterval(() => {
+            if (this.currentPage === 'dashboard') {
+                this.loadUpcomingEvents();
+            }
+        }, 30000);
+
+        // Also refresh when window gains focus (user returns from calendar)
+        window.addEventListener('focus', () => {
+            if (this.currentPage === 'dashboard') {
+                this.loadUpcomingEvents();
+            }
+        });
     }
 
     async saveUserTasks() {
