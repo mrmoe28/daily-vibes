@@ -829,30 +829,59 @@
                     </div>
                 </div>
                 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label" for="eventType">Event Type</label>
-                        <select id="eventType" name="type" class="form-select">
-                            <option value="meeting">Meeting</option>
-                            <option value="appointment">Appointment</option>
-                            <option value="reminder">Reminder</option>
-                            <option value="birthday">Birthday</option>
-                            <option value="holiday">Holiday</option>
-                            <option value="other">Other</option>
+                <!-- Category Tabs -->
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <div class="category-tabs">
+                        <button type="button" class="tab-btn active" data-category="work">Work</button>
+                        <button type="button" class="tab-btn" data-category="home">Home</button>
+                        <button type="button" class="tab-btn" data-category="goals">Goals</button>
+                    </div>
+                    
+                    <!-- Work Subcategories -->
+                    <div class="subcategory-container active" data-category="work">
+                        <select id="workSubcategory" name="subcategory" class="form-select">
+                            <option value="b2b">B2B</option>
+                            <option value="c2b">C2B</option>
+                            <option value="leads">Leads</option>
                         </select>
                     </div>
                     
-                    <div class="form-group">
-                        <label class="form-label" for="eventColor">Color</label>
-                        <select id="eventColor" name="color" class="form-select">
-                            <option value="blue">Blue</option>
-                            <option value="green">Green</option>
-                            <option value="purple">Purple</option>
-                            <option value="red">Red</option>
-                            <option value="yellow">Yellow</option>
-                            <option value="pink">Pink</option>
+                    <!-- Home Subcategories -->
+                    <div class="subcategory-container" data-category="home">
+                        <select id="homeSubcategory" name="subcategory" class="form-select">
+                            <option value="projects">Projects</option>
+                            <option value="daily">Daily</option>
+                            <option value="special-projects">Special Projects</option>
                         </select>
                     </div>
+                    
+                    <!-- Goals Subcategories -->
+                    <div class="subcategory-container" data-category="goals">
+                        <select id="goalsSubcategory" name="subcategory" class="form-select">
+                            <option value="1-week">1 Week</option>
+                            <option value="2-week">2 Week</option>
+                            <option value="3-week">3 Week</option>
+                            <option value="4-week">4 Week</option>
+                            <option value="one-year">One Year</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Hidden fields to store selected category and subcategory -->
+                    <input type="hidden" id="eventType" name="type" value="work">
+                    <input type="hidden" id="eventSubtype" name="subtype" value="b2b">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="eventColor">Color</label>
+                    <select id="eventColor" name="color" class="form-select">
+                        <option value="blue">Blue</option>
+                        <option value="green">Green</option>
+                        <option value="purple">Purple</option>
+                        <option value="red">Red</option>
+                        <option value="yellow">Yellow</option>
+                        <option value="pink">Pink</option>
+                    </select>
                 </div>
                 
                 <div class="form-group">
@@ -889,6 +918,46 @@
             border-top: 1px solid var(--border);
         }
         
+        /* Category Tabs Styling */
+        .category-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 0.75rem 1.25rem;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--text-secondary);
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+            border-radius: 0.5rem 0.5rem 0 0;
+        }
+
+        .tab-btn:hover {
+            background: var(--surface-hover);
+            color: var(--text-primary);
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: var(--surface-hover);
+        }
+
+        .subcategory-container {
+            display: none;
+            margin-top: 1rem;
+        }
+
+        .subcategory-container.active {
+            display: block;
+        }
+
         @media (max-width: 480px) {
             .form-row {
                 grid-template-columns: 1fr;
@@ -896,6 +965,15 @@
             
             .form-actions {
                 flex-direction: column;
+            }
+
+            .category-tabs {
+                flex-wrap: wrap;
+            }
+
+            .tab-btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.875rem;
             }
         }
     </style>

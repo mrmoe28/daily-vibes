@@ -14,6 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
         initializeCalendar();
         loadEvents();
         setupEventListeners();
+        setupCategoryTabs();
+        handleURLParameters();
     }
 });
 
@@ -740,3 +742,72 @@ notificationStyles.textContent = `
     }
 `;
 document.head.appendChild(notificationStyles);
+
+function setupCategoryTabs() {
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const subcategoryContainers = document.querySelectorAll('.subcategory-container');
+    const eventTypeInput = document.getElementById('eventType');
+    const eventSubtypeInput = document.getElementById('eventSubtype');
+    
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const category = button.dataset.category;
+            
+            // Update tab appearance
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            
+            // Show corresponding subcategory container
+            subcategoryContainers.forEach(container => {
+                container.classList.remove('active');
+                if (container.dataset.category === category) {
+                    container.classList.add('active');
+                }
+            });
+            
+            // Update hidden inputs
+            eventTypeInput.value = category;
+            
+            // Update subcategory based on first option of active container
+            const activeContainer = document.querySelector(`.subcategory-container[data-category="${category}"]`);
+            const firstOption = activeContainer.querySelector('select option');
+            if (firstOption) {
+                eventSubtypeInput.value = firstOption.value;
+            }
+        });
+    });
+    
+    // Set up subcategory change handlers
+    document.getElementById('workSubcategory').addEventListener('change', (e) => {
+        eventSubtypeInput.value = e.target.value;
+    });
+    
+    document.getElementById('homeSubcategory').addEventListener('change', (e) => {
+        eventSubtypeInput.value = e.target.value;
+    });
+    
+    document.getElementById('goalsSubcategory').addEventListener('change', (e) => {
+        eventSubtypeInput.value = e.target.value;
+    });
+}
+
+function handleURLParameters() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const dateParam = urlParams.get('date');
+    const actionParam = urlParams.get('action');
+    
+    if (actionParam === 'add') {
+        // Open the event modal
+        setTimeout(() => {
+            openEventModal();
+            
+            // If date parameter is provided, set it in the form
+            if (dateParam) {
+                const eventDateInput = document.getElementById('eventDate');
+                if (eventDateInput) {
+                    eventDateInput.value = dateParam;
+                }
+            }
+        }, 500); // Small delay to ensure modal elements are ready
+    }
+}
