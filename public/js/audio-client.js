@@ -300,6 +300,16 @@ class RealtimeAudioClient {
                 console.log('Conversation item created:', message.item?.type);
                 break;
 
+            case 'session.warning':
+                console.warn('Session warning:', message.message);
+                this.onSessionWarning?.(message);
+                break;
+
+            case 'session.renewed':
+                console.log('Session renewed:', message.message);
+                this.onSessionRenewed?.(message);
+                break;
+
             case 'error':
                 console.error('Server error:', message.error);
                 this.onError?.(message.error?.message || 'Server error');

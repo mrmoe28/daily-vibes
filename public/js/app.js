@@ -2241,17 +2241,50 @@ class AIChatWidget {
     }
 
     initializeElements() {
-        this.widget = document.getElementById('aiChatWidget');
-        this.toggle = document.getElementById('aiChatToggle');
-        this.chatInput = document.getElementById('chatInput');
-        this.sendBtn = document.getElementById('sendBtn');
-        this.voiceBtn = document.getElementById('voiceBtn');
-        this.chatMessages = document.getElementById('chatMessages');
-        this.minimizeBtn = document.getElementById('minimizeChat');
-        this.closeBtn = document.getElementById('closeChat');
-        this.chatStatus = document.getElementById('chatStatus');
-        this.audioIndicator = document.getElementById('audioIndicator');
+        // Use a retry mechanism for DOM elements that might not be immediately available
+        const getElement = (id, retries = 3) => {
+            const element = document.getElementById(id);
+            if (!element && retries > 0) {
+                console.warn(`Element ${id} not found, retrying...`);
+                setTimeout(() => getElement(id, retries - 1), 100);
+                return null;
+            }
+            return element;
+        };
+
+        this.widget = getElement('aiChatWidget');
+        this.toggle = getElement('aiChatToggle');
+        this.chatInput = getElement('chatInput');
+        this.sendBtn = getElement('sendBtn');
+        this.voiceBtn = getElement('voiceBtn');
+        this.chatMessages = getElement('chatMessages');
+        this.minimizeBtn = getElement('minimizeChat');
+        this.closeBtn = getElement('closeChat');
+        this.chatStatus = getElement('chatStatus');
+        this.audioIndicator = getElement('audioIndicator');
         this.quickActions = document.querySelectorAll('.quick-action-btn');
+
+        // Log missing elements for debugging
+        const requiredElements = {
+            widget: this.widget,
+            toggle: this.toggle,
+            chatInput: this.chatInput,
+            sendBtn: this.sendBtn,
+            voiceBtn: this.voiceBtn,
+            chatMessages: this.chatMessages,
+            minimizeBtn: this.minimizeBtn,
+            closeBtn: this.closeBtn,
+            chatStatus: this.chatStatus,
+            audioIndicator: this.audioIndicator
+        };
+
+        const missingElements = Object.entries(requiredElements)
+            .filter(([name, element]) => !element)
+            .map(([name]) => name);
+
+        if (missingElements.length > 0) {
+            console.warn('Missing chat widget elements:', missingElements);
+        }
     }
 
     setupEventListeners() {
@@ -2673,19 +2706,49 @@ class AIChatWidget {
             this.audioIndicator.classList.remove('active');
             this.updateStatus('Ready to help', null);
         };
+
+        // Handle session warnings
+        this.audioClient.onSessionWarning = (message) => {
+            console.log('Session warning received:', message);
+            this.showToast('⏰ Your session will expire soon but will automatically continue', 'info');
+            this.updateStatus('Session renewal pending...', 'processing');
+        };
+
+        // Handle session renewal
+        this.audioClient.onSessionRenewed = (message) => {
+            console.log('Session renewed:', message);
+            this.showToast('✅ Session renewed - you can continue your conversation', 'success');
+            this.updateStatus('Ready to help', 'connected');
+        };
     }
 
     updateStatus(status, cssClass = null) {
-        if (this.chatStatus) {
-            this.chatStatus.textContent = status;
+        // Add robust error checking for DOM element
+        if (!this.chatStatus) {
+            console.warn('chatStatus element not found, attempting to reinitialize');
+            this.chatStatus = document.getElementById('chatStatus');
+        }
+        
+        if (this.chatStatus && typeof this.chatStatus.textContent !== 'undefined') {
+            try {
+                this.chatStatus.textContent = status;
+                
+                // Remove all status classes
+                this.chatStatus.classList.remove('listening', 'processing', 'connected');
             
-            // Remove all status classes
-            this.chatStatus.classList.remove('listening', 'processing', 'connected');
-            
-            // Add new class if provided
-            if (cssClass) {
-                this.chatStatus.classList.add(cssClass);
+                // Add new class if provided
+                if (cssClass) {
+                    this.chatStatus.classList.add(cssClass);
+                }
+                
+            } catch (error) {
+                console.error('Error updating chat status:', error);
             }
+        } else {
+            console.error('chatStatus element is still not available:', {
+                element: this.chatStatus,
+                textContent: this.chatStatus ? typeof this.chatStatus.textContent : 'N/A'
+            });
         }
     }
 
@@ -2770,8 +2833,10 @@ class AIChatWidget {
             window.app = new TaskFlowApp();
             await window.app.init();
             
-            // Initialize AI Chat Widget
-            window.aiChat = new AIChatWidget();
+                    // Initialize AI Chat Widget with delay to ensure DOM is ready
+            setTimeout(() => {
+                window.aiChat = new AIChatWidget();
+            }, 100);
             
         } catch (error) {
             console.error('Failed to initialize app:', error);
