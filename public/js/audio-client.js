@@ -43,6 +43,42 @@ class RealtimeAudioClient {
     }
 
     /**
+     * Request microphone permission explicitly
+     */
+    async requestMicrophonePermission() {
+        try {
+            console.log('Requesting microphone permission...');
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                audio: {
+                    sampleRate: this.sampleRate,
+                    channelCount: 1,
+                    echoCancellation: true,
+                    noiseSuppression: true
+                }
+            });
+            
+            // Stop the stream immediately - we just wanted permission
+            stream.getTracks().forEach(track => track.stop());
+            console.log('✅ Microphone permission granted');
+            return true;
+        } catch (error) {
+            console.error('❌ Microphone permission denied or failed:', error);
+            
+            let errorMessage = 'Microphone access denied';
+            if (error.name === 'NotAllowedError') {
+                errorMessage = 'Please allow microphone access in your browser settings to use voice features';
+            } else if (error.name === 'NotFoundError') {
+                errorMessage = 'No microphone found. Please connect a microphone to use voice features';
+            } else if (error.name === 'NotSupportedError') {
+                errorMessage = 'Voice features require a secure (HTTPS) connection';
+            }
+            
+            this.onError?.(errorMessage);
+            return false;
+        }
+    }
+
+    /**
      * Connect to WebSocket server
      */
     async connect(userId = 'anonymous') {

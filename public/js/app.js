@@ -2620,10 +2620,20 @@ class AIChatWidget {
                     return;
                 }
 
+                // Request microphone permission first
+                this.updateStatus('Requesting microphone permission...', 'processing');
+                this.voiceBtn.classList.add('connecting');
+                
+                const hasPermission = await this.audioClient.requestMicrophonePermission();
+                if (!hasPermission) {
+                    this.voiceBtn.classList.remove('connecting');
+                    this.updateStatus('Microphone access required for voice features', 'error');
+                    return;
+                }
+
                 // Connect and start recording
                 if (!this.audioClient.isConnected) {
-                    this.updateStatus('Connecting...', 'processing');
-                    this.voiceBtn.classList.add('connecting');
+                    this.updateStatus('Connecting to audio service...', 'processing');
                     await this.audioClient.connect('user123'); // TODO: Use real user ID
                     
                     // Wait a bit for connection to stabilize
