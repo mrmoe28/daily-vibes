@@ -27,7 +27,7 @@ const serveHtmlFile = (filePath) => (req, res) => {
 };
 
 // Define your HTML routes here
-app.get('/', serveHtmlFile('index.html'));
+app.get('/', serveHtmlFile('public/index.html'));
 
 // Simple in-memory storage for serverless
 const dataStore = new Map();

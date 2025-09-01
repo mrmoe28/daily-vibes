@@ -2,11 +2,10 @@
   "version": 2,
   "builds": [
     {
-      "src": "server.js",
+      "src": "api/index.js",
       "use": "@vercel/node",
       "config": {
-        "maxLambdaSize": "50mb",
-        "includeFiles": "public/**"
+        "maxLambdaSize": "50mb"
       }
     },
     {
@@ -24,23 +23,27 @@
       "dest": "/public/js/$1"
     },
     {
+      "src": "/api/realtime-audio",
+      "dest": "/api/realtime-audio.js"
+    },
+    {
       "src": "/api/(.*)",
-      "dest": "/server.js"
+      "dest": "/api/index.js"
     },
     {
       "src": "/uploads/(.*)",
-      "dest": "/server.js"
+      "dest": "/api/index.js"
     },
     {
       "src": "/",
-      "dest": "/server.js"
+      "dest": "/api/index.js"
     },
     {
       "handle": "filesystem"
     },
     {
       "src": "/(.*)",
-      "dest": "/server.js"
+      "dest": "/api/index.js"
     }
   ]
 }
