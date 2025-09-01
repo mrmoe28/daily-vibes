@@ -90,6 +90,13 @@ class RealtimeAudioClient {
             console.log('Connecting to WebSocket:', wsUrl);
             console.log('Browser WebSocket support:', typeof WebSocket !== 'undefined');
             
+            // Check if running on Vercel (serverless)
+            if (host.includes('vercel.app')) {
+                console.warn('⚠️ Running on Vercel - WebSocket connections have limitations');
+                this.onError?.('Voice features are limited on this deployment. WebSocket connections require a dedicated server. Please use the local development version for full audio functionality.');
+                return false;
+            }
+            
             this.ws = new WebSocket(wsUrl);
             
             // Set a connection timeout
@@ -552,32 +559,58 @@ class RealtimeAudioClient {
      * Test connection without full initialization
      */
     static async testConnection() {
-        return new Promise((resolve, reject) => {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        try {
+            const protocol = window.location.protocol;
             const host = window.location.host;
-            const wsUrl = `${protocol}//${host}/api/realtime-audio?userId=test`;
+            
+            // For Vercel, test HTTP endpoint instead of WebSocket
+            if (host.includes('vercel.app')) {
+                console.log('Testing audio service via HTTP:', `${protocol}//${host}/api/realtime-audio`);
+                
+                const response = await fetch(`${protocol}//${host}/api/realtime-audio`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'test' })
+                });
+                
+                if (response.ok) {
+                    console.log('✅ Audio service HTTP test successful');
+                    return true;
+                } else {
+                    throw new Error(`HTTP test failed: ${response.status}`);
+                }
+            }
+            
+            // For local development, test WebSocket
+            const wsProtocol = protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${wsProtocol}//${host}/api/realtime-audio?userId=test`;
             
             console.log('Testing WebSocket connection to:', wsUrl);
             
-            const ws = new WebSocket(wsUrl);
-            const timeout = setTimeout(() => {
-                ws.close();
-                reject(new Error('Connection timeout'));
-            }, 5000);
-            
-            ws.onopen = () => {
-                console.log('✅ WebSocket test connection successful');
-                clearTimeout(timeout);
-                ws.close();
-                resolve(true);
-            };
-            
-            ws.onerror = (error) => {
-                console.error('❌ WebSocket test connection failed:', error);
-                clearTimeout(timeout);
-                reject(new Error('Connection failed'));
-            };
-        });
+            return new Promise((resolve, reject) => {
+                const ws = new WebSocket(wsUrl);
+                const timeout = setTimeout(() => {
+                    ws.close();
+                    reject(new Error('Connection timeout'));
+                }, 5000);
+                
+                ws.onopen = () => {
+                    console.log('✅ WebSocket test connection successful');
+                    clearTimeout(timeout);
+                    ws.close();
+                    resolve(true);
+                };
+                
+                ws.onerror = (error) => {
+                    console.error('❌ WebSocket test connection failed:', error);
+                    clearTimeout(timeout);
+                    reject(new Error('Connection failed'));
+                };
+            });
+        } catch (error) {
+            console.error('Connection test error:', error);
+            throw error;
+        }
     }
 
     /**
