@@ -28,26 +28,6 @@ module.exports = defineConfig({
         browserName: 'chromium',
         channel: 'chrome', // Use actual Chrome browser
       },
-    },
-    {
-      name: 'performance',
-      use: {
-        browserName: 'chromium',
-        channel: 'chrome',
-        // Performance-specific settings
-        launchOptions: {
-          args: [
-            '--disable-background-timer-throttling',
-            '--disable-backgrounding-occluded-windows',
-            '--disable-renderer-backgrounding',
-            '--disable-features=TranslateUI',
-            '--disable-ipc-flooding-protection',
-            '--enable-precise-memory-info',
-            '--enable-logging',
-            '--v=1'
-          ]
-        }
-      },
     }
   ],
   webServer: {
