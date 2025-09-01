@@ -59,7 +59,11 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Serve static files - works both locally and on Vercel
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  // Disable caching in development for easier testing
+  etag: false,
+  maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0
+}));
 app.use('/css', express.static(path.join(__dirname, 'public', 'css')));
 app.use('/js', express.static(path.join(__dirname, 'public', 'js')));
 
@@ -70,10 +74,17 @@ app.get('/', (req, res) => {
 
 // Explicit routes for static files (fallback for Vercel)
 app.get('/js/app.js', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache');
   res.sendFile(path.join(__dirname, 'public', 'js', 'app.js'));
 });
 
+app.get('/js/audio-client.js', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache');
+  res.sendFile(path.join(__dirname, 'public', 'js', 'audio-client.js'));
+});
+
 app.get('/css/main.css', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache');
   res.sendFile(path.join(__dirname, 'public', 'css', 'main.css'));
 });
 

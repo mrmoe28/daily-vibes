@@ -55,11 +55,22 @@ class RealtimeAudioClient {
             
             this.ws = new WebSocket(wsUrl);
             
+            // Set a connection timeout
+            const connectionTimeout = setTimeout(() => {
+                if (!this.isConnected) {
+                    console.warn('WebSocket connection timeout');
+                    this.ws?.close();
+                    this.onError?.('Connection timeout. Please check your network and try again.');
+                }
+            }, 10000); // 10 second timeout
+
             this.ws.onopen = () => {
                 console.log('WebSocket connected');
+                clearTimeout(connectionTimeout);
                 this.isConnected = true;
                 this.onConnectionChange?.(true);
-                this.initializeSession();
+                // Wait a moment before initializing session to ensure server is ready
+                setTimeout(() => this.initializeSession(), 500);
             };
 
             this.ws.onmessage = (event) => {
@@ -73,6 +84,7 @@ class RealtimeAudioClient {
 
             this.ws.onclose = () => {
                 console.log('WebSocket disconnected');
+                clearTimeout(connectionTimeout);
                 this.isConnected = false;
                 this.onConnectionChange?.(false);
                 this.cleanup();
@@ -80,7 +92,8 @@ class RealtimeAudioClient {
 
             this.ws.onerror = (error) => {
                 console.error('WebSocket error:', error);
-                this.onError?.('WebSocket connection failed');
+                clearTimeout(connectionTimeout);
+                this.onError?.('Failed to connect to audio service. Please try again.');
             };
             
         } catch (error) {
