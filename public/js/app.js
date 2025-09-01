@@ -2250,6 +2250,7 @@ class AIChatWidget {
         this.minimizeBtn = document.getElementById('minimizeChat');
         this.closeBtn = document.getElementById('closeChat');
         this.chatStatus = document.getElementById('chatStatus');
+        this.audioIndicator = document.getElementById('audioIndicator');
         this.quickActions = document.querySelectorAll('.quick-action-btn');
     }
 
@@ -2558,19 +2559,119 @@ class AIChatWidget {
         }
     }
 
-    toggleVoiceInput() {
-        // Voice input implementation (placeholder)
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-            console.log('Voice input not yet implemented');
-            this.showToast('Voice input coming soon!', 'info');
-        } else {
-            this.showToast('Voice input not supported in this browser', 'warning');
+    async toggleVoiceInput() {
+        try {
+            // Initialize audio client if not exists
+            if (!this.audioClient) {
+                this.audioClient = new RealtimeAudioClient();
+                this.setupAudioClientHandlers();
+            }
+
+            if (this.audioClient.isRecording) {
+                // Stop recording
+                this.audioClient.stopRecording();
+                this.voiceBtn.classList.remove('recording');
+                this.voiceBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+                this.audioIndicator.classList.remove('active');
+                this.updateStatus('Processing...', 'processing');
+            } else {
+                // Check support first
+                const support = RealtimeAudioClient.isSupported();
+                if (!support.supported) {
+                    let missing = [];
+                    if (!support.webSocket) missing.push('WebSocket');
+                    if (!support.audioContext) missing.push('Web Audio API');
+                    if (!support.mediaDevices) missing.push('Microphone access');
+                    
+                    this.showToast(`Voice input not supported: ${missing.join(', ')}`, 'warning');
+                    return;
+                }
+
+                // Connect and start recording
+                if (!this.audioClient.isConnected) {
+                    this.updateStatus('Connecting...', 'processing');
+                    this.voiceBtn.classList.add('connecting');
+                    await this.audioClient.connect('user123'); // TODO: Use real user ID
+                    
+                    // Wait a bit for connection to stabilize
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    this.voiceBtn.classList.remove('connecting');
+                }
+
+                if (this.audioClient.isConnected) {
+                    const started = await this.audioClient.startRecording();
+                    if (started) {
+                        this.voiceBtn.classList.add('recording');
+                        this.voiceBtn.innerHTML = '<i class="fas fa-stop"></i>';
+                        this.updateStatus('Listening...', 'listening');
+                        this.audioIndicator.classList.add('active');
+                        this.showToast('🎙️ Listening... Click to stop', 'info');
+                    } else {
+                        this.showToast('Failed to start recording', 'error');
+                    }
+                } else {
+                    this.showToast('Failed to connect to audio service', 'error');
+                }
+            }
+        } catch (error) {
+            console.error('Voice input error:', error);
+            this.showToast('Voice input failed: ' + error.message, 'error');
+            this.voiceBtn.classList.remove('recording', 'connecting');
+            this.voiceBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+            this.audioIndicator.classList.remove('active');
+            this.updateStatus('Ready to help', null);
         }
     }
 
-    updateStatus(status) {
+    setupAudioClientHandlers() {
+        if (!this.audioClient) return;
+
+        // Handle text messages from AI
+        this.audioClient.onMessage = (text, isComplete) => {
+            if (isComplete && text) {
+                this.addMessage(text, 'ai');
+                this.updateStatus('Ready to help');
+            }
+        };
+
+        // Handle audio responses
+        this.audioClient.onAudioResponse = (audioData) => {
+            console.log('Received audio response chunk');
+        };
+
+        // Handle connection changes
+        this.audioClient.onConnectionChange = (connected) => {
+            if (connected) {
+                this.updateStatus('Connected', 'connected');
+                console.log('Audio client connected');
+            } else {
+                this.updateStatus('Disconnected', null);
+                console.log('Audio client disconnected');
+            }
+        };
+
+        // Handle errors
+        this.audioClient.onError = (error) => {
+            console.error('Audio client error:', error);
+            this.showToast('Audio error: ' + error, 'error');
+            this.voiceBtn.classList.remove('recording', 'connecting');
+            this.voiceBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+            this.audioIndicator.classList.remove('active');
+            this.updateStatus('Ready to help', null);
+        };
+    }
+
+    updateStatus(status, cssClass = null) {
         if (this.chatStatus) {
             this.chatStatus.textContent = status;
+            
+            // Remove all status classes
+            this.chatStatus.classList.remove('listening', 'processing', 'connected');
+            
+            // Add new class if provided
+            if (cssClass) {
+                this.chatStatus.classList.add(cssClass);
+            }
         }
     }
 

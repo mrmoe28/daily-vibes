@@ -3,6 +3,7 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs-extra');
+const http = require('http');
 require('dotenv').config();
 
 const DatabaseService = require('./lib/database-neon');
@@ -10,12 +11,13 @@ const { EncryptionService } = require('./lib/encryption');
 const { UserManager } = require('./lib/user-manager');
 const { Logger } = require('./lib/logger');
 const { ConfigManager } = require('./lib/config-manager');
+const { RealtimeAudioService } = require('./lib/realtime-audio-service');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Initialize services
-let database, encryption, userManager, logger, configManager;
+let database, encryption, userManager, logger, configManager, realtimeAudio;
 let servicesInitialized = false;
 
 async function initializeServices() {
@@ -30,6 +32,7 @@ async function initializeServices() {
     database = new DatabaseService();
     await database.initialize();
     userManager = new UserManager(database, encryption);
+    realtimeAudio = new RealtimeAudioService();
     
     servicesInitialized = true;
     logger.info('All services initialized successfully');
@@ -623,6 +626,32 @@ app.get('/api/assistant/memory', ensureServices, async (req, res) => {
   }
 });
 
+// AI Audio Status
+app.get('/api/assistant/audio-status', ensureServices, async (req, res) => {
+  try {
+    const stats = realtimeAudio ? realtimeAudio.getStats() : { activeConnections: 0 };
+    const openaiApiKeySet = !!process.env.OPENAI_API_KEY;
+
+    return res.json({
+      success: true,
+      audioEnabled: true,
+      openaiConfigured: openaiApiKeySet,
+      websocketEndpoint: '/api/realtime-audio',
+      stats: stats,
+      supportedFormats: ['pcm16', 'g711_ulaw', 'g711_alaw'],
+      maxConnections: 100
+    });
+
+  } catch (error) {
+    console.error('Audio status error:', error);
+    return res.status(500).json({
+      success: false,
+      audioEnabled: false,
+      error: 'Failed to get audio status'
+    });
+  }
+});
+
 // AI Feedback
 app.post('/api/assistant/feedback', ensureServices, async (req, res) => {
   try {
@@ -812,11 +841,21 @@ async function startServer() {
     // Don't exit in serverless environments, let individual routes handle initialization
   }
   
-  app.listen(PORT, () => {
+  // Create HTTP server and integrate WebSocket
+  const server = http.createServer(app);
+  
+  // Initialize WebSocket server for real-time audio
+  if (realtimeAudio) {
+    realtimeAudio.createWebSocketServer(server);
+    console.log('🎙️  Real-time audio WebSocket server initialized');
+  }
+  
+  server.listen(PORT, () => {
     console.log(`\n🚀 Daily Vibe is ready on port ${PORT}!`);
     console.log('📱 Open your browser to:');
     console.log(`   http://localhost:${PORT}`);
-    console.log('\n✨ Your task management app is waiting for you!\n');
+    console.log('🎙️  WebSocket endpoint: ws://localhost:' + PORT + '/api/realtime-audio');
+    console.log('\n✨ Your task management app with real-time audio is waiting for you!\n');
   });
 }
 

@@ -840,11 +840,77 @@
         .voice-btn.recording {
             background: var(--error);
             animation: pulse 1s infinite;
+            box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.3);
+        }
+
+        .voice-btn.connecting {
+            background: var(--warning);
+            animation: spin 1s linear infinite;
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
+            0%, 100% { 
+                opacity: 1; 
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 0.8; 
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Audio wave indicator */
+        .audio-indicator {
+            display: none;
+            align-items: center;
+            gap: 2px;
+            margin-left: 8px;
+        }
+
+        .audio-indicator.active {
+            display: flex;
+        }
+
+        .wave-bar {
+            width: 3px;
+            height: 12px;
+            background: var(--primary);
+            border-radius: 2px;
+            animation: wave 1.2s ease-in-out infinite;
+        }
+
+        .wave-bar:nth-child(2) { animation-delay: 0.1s; }
+        .wave-bar:nth-child(3) { animation-delay: 0.2s; }
+        .wave-bar:nth-child(4) { animation-delay: 0.3s; }
+
+        @keyframes wave {
+            0%, 100% { transform: scaleY(0.5); }
+            50% { transform: scaleY(1); }
+        }
+
+        /* Enhanced chat status */
+        .chat-status {
+            font-size: 0.7rem;
+            opacity: 0.8;
+            transition: all 0.3s ease;
+        }
+
+        .chat-status.listening {
+            color: var(--error);
+            font-weight: bold;
+        }
+
+        .chat-status.processing {
+            color: var(--warning);
+        }
+
+        .chat-status.connected {
+            color: var(--success);
         }
 
         .input-suggestions {
@@ -1199,6 +1265,12 @@
                 <div class="ai-avatar">🤖</div>
                 <span class="chat-title">Calendar Assistant</span>
                 <span class="chat-status" id="chatStatus">Ready to help</span>
+                <div class="audio-indicator" id="audioIndicator">
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                </div>
             </div>
             <div class="chat-controls">
                 <button class="chat-btn minimize-btn" id="minimizeChat" title="Minimize">
@@ -1263,6 +1335,7 @@
     <!-- Toast Container -->
     <div id="toastContainer"></div>
 
+    <script src="js/audio-client.js"></script>
     <script src="js/app.js"></script>
     <script>
         function addEventForToday() {
