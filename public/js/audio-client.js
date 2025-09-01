@@ -52,6 +52,7 @@ class RealtimeAudioClient {
             const wsUrl = `${protocol}//${host}/api/realtime-audio?userId=${userId}`;
             
             console.log('Connecting to WebSocket:', wsUrl);
+            console.log('Browser WebSocket support:', typeof WebSocket !== 'undefined');
             
             this.ws = new WebSocket(wsUrl);
             
@@ -98,7 +99,7 @@ class RealtimeAudioClient {
             
         } catch (error) {
             console.error('Failed to connect to WebSocket:', error);
-            this.onError?.('Failed to connect to audio service');
+            this.onError?.(`Failed to connect to audio service: ${error.message}`);
         }
     }
 
@@ -271,6 +272,14 @@ class RealtimeAudioClient {
                 });
                 break;
 
+            case 'input_audio_buffer.speech_started':
+                console.log('Speech detection started');
+                break;
+
+            case 'input_audio_buffer.speech_stopped':
+                console.log('Speech detection stopped');
+                break;
+
             case 'response.audio.delta':
                 this.handleAudioDelta(message);
                 break;
@@ -307,17 +316,97 @@ class RealtimeAudioClient {
     async handleAudioDelta(message) {
         try {
             if (message.delta) {
-                const audioData = this.base64ToArrayBuffer(message.delta);
-                await this.playAudio(audioData);
+                // Queue audio chunks for smoother playback
+                this.audioQueue.push(message.delta);
+                
+                // Start playback if not already playing
+                if (!this.isPlaying) {
+                    await this.processAudioQueue();
+                }
+                
                 this.onAudioResponse?.(message.delta);
             }
         } catch (error) {
             console.error('Error handling audio delta:', error);
+            this.onError?.('Error processing audio response');
         }
     }
 
     /**
-     * Play audio data
+     * Process audio queue for smooth playback
+     */
+    async processAudioQueue() {
+        if (this.audioQueue.length === 0 || this.isPlaying) {
+            return;
+        }
+
+        try {
+            this.isPlaying = true;
+            
+            while (this.audioQueue.length > 0) {
+                const audioChunk = this.audioQueue.shift();
+                const audioData = this.base64ToArrayBuffer(audioChunk);
+                
+                // Convert PCM16 to AudioBuffer for playback
+                await this.playPCMBuffer(audioData);
+                
+                // Small delay between chunks to prevent audio glitches
+                await new Promise(resolve => setTimeout(resolve, 10));
+            }
+            
+            this.isPlaying = false;
+            
+        } catch (error) {
+            console.error('Error processing audio queue:', error);
+            this.isPlaying = false;
+            this.audioQueue = []; // Clear queue on error
+        }
+    }
+
+    /**
+     * Play PCM16 audio buffer
+     */
+    async playPCMBuffer(pcmBuffer) {
+        try {
+            if (!this.audioContext) return;
+
+            // Resume audio context if suspended
+            if (this.audioContext.state === 'suspended') {
+                await this.audioContext.resume();
+            }
+
+            // Convert PCM16 to Float32 for Web Audio API
+            const int16Array = new Int16Array(pcmBuffer);
+            const float32Array = new Float32Array(int16Array.length);
+            
+            for (let i = 0; i < int16Array.length; i++) {
+                float32Array[i] = int16Array[i] / 32768.0;
+            }
+
+            // Create audio buffer
+            const audioBuffer = this.audioContext.createBuffer(1, float32Array.length, this.sampleRate);
+            audioBuffer.copyToChannel(float32Array, 0);
+            
+            // Create and play audio source
+            const source = this.audioContext.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(this.audioContext.destination);
+            
+            return new Promise((resolve, reject) => {
+                source.onended = resolve;
+                source.onerror = reject;
+                source.start();
+                this.currentAudioSource = source;
+            });
+            
+        } catch (error) {
+            console.error('Error playing PCM buffer:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Play audio data (legacy method for compatibility)
      */
     async playAudio(audioBuffer) {
         try {
@@ -393,6 +482,9 @@ class RealtimeAudioClient {
         this.stopRecording();
         this.stopAudio();
         
+        // Clear audio queue
+        this.audioQueue = [];
+        
         if (this.audioContext && this.audioContext.state !== 'closed') {
             this.audioContext.close();
         }
@@ -408,6 +500,38 @@ class RealtimeAudioClient {
             playing: this.isPlaying,
             audioContext: this.audioContext?.state || 'not-initialized'
         };
+    }
+
+    /**
+     * Test connection without full initialization
+     */
+    static async testConnection() {
+        return new Promise((resolve, reject) => {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = window.location.host;
+            const wsUrl = `${protocol}//${host}/api/realtime-audio?userId=test`;
+            
+            console.log('Testing WebSocket connection to:', wsUrl);
+            
+            const ws = new WebSocket(wsUrl);
+            const timeout = setTimeout(() => {
+                ws.close();
+                reject(new Error('Connection timeout'));
+            }, 5000);
+            
+            ws.onopen = () => {
+                console.log('✅ WebSocket test connection successful');
+                clearTimeout(timeout);
+                ws.close();
+                resolve(true);
+            };
+            
+            ws.onerror = (error) => {
+                console.error('❌ WebSocket test connection failed:', error);
+                clearTimeout(timeout);
+                reject(new Error('Connection failed'));
+            };
+        });
     }
 
     /**

@@ -2634,6 +2634,20 @@ class AIChatWidget {
             }
         };
 
+        // Test connection immediately for debugging
+        if (window.location.search.includes('debug=audio')) {
+            console.log('Debug mode: Testing audio connection...');
+            RealtimeAudioClient.testConnection()
+                .then(() => {
+                    console.log('✅ Audio connection test passed');
+                    this.showToast('Audio connection test successful', 'success');
+                })
+                .catch(error => {
+                    console.error('❌ Audio connection test failed:', error);
+                    this.showToast(`Audio connection test failed: ${error.message}`, 'error');
+                });
+        }
+
         // Handle audio responses
         this.audioClient.onAudioResponse = (audioData) => {
             console.log('Received audio response chunk');

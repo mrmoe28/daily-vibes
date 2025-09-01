@@ -856,9 +856,16 @@ async function startServer() {
   const server = http.createServer(app);
   
   // Initialize WebSocket server for real-time audio
-  if (realtimeAudio) {
-    realtimeAudio.createWebSocketServer(server);
-    console.log('🎙️  Real-time audio WebSocket server initialized');
+  try {
+    await initializeServices(); // Ensure services are initialized
+    if (realtimeAudio) {
+      realtimeAudio.createWebSocketServer(server);
+      console.log('🎙️  Real-time audio WebSocket server initialized');
+    } else {
+      console.warn('⚠️  Real-time audio service not available');
+    }
+  } catch (error) {
+    console.error('Failed to initialize WebSocket server:', error);
   }
   
   server.listen(PORT, () => {
